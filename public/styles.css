@@ -10,3 +10,7 @@ body.in-game #gameCanvas canvas{width:100%;height:100%;display:block}
 .game-actions .pause-btn{position:static}
 .game-notice{pointer-events:none}
 @media(max-width:800px){.game-actions{top:auto;bottom:125px;right:10px}.game-actions .pause-btn{padding:8px 10px;font-size:10px}}
+
+/* Damage feedback overlay */
+.damage-vignette{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:2;background:radial-gradient(ellipse at center,transparent 38%,rgba(190,20,20,.48) 100%);transition:opacity .12s}
+body.taking-damage .damage-vignette{opacity:1}
