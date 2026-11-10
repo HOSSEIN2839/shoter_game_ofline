@@ -1,6 +1,8 @@
 // OFFLINE SINGLE-PLAYER EDITION — main branch
 // Browser-only game logic. No accounts, sockets, API endpoints or Node.js runtime.
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
 
 const $ = id => document.getElementById(id);
 const menu=$('menu'), game=$('game'), result=$('result'), host=$('gameCanvas');
@@ -16,6 +18,38 @@ const weapons={
  pistol:{label:'SIDEARM',mag:12,ammo:12,damage:24,rate:300,range:35,pellets:1}
 };
 const obstacles=[],windFoliage=[];
+const gltfLoader=new GLTFLoader();
+const operatorModelIds=['army-general','army-officer','army-sniper','combat-engineer','combat-medic','machine-gunner','recon-scout','rifleman'];
+const operatorTemplates=new Map();
+function getOperatorTemplate(id){
+ if(!operatorTemplates.has(id))operatorTemplates.set(id,gltfLoader.loadAsync('/assets/characters/'+id+'.glb'));
+ return operatorTemplates.get(id);
+}
+async function createOperatorModel(id){
+ const gltf=await getOperatorTemplate(id),root=cloneSkinned(gltf.scene);
+ const bounds=new THREE.Box3().setFromObject(root),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
+ const scale=1.8/Math.max(.1,size.y);root.scale.setScalar(scale);root.position.set(-center.x*scale,-bounds.min.y*scale,-center.z*scale);
+ root.traverse(object=>{if(object.isMesh){object.castShadow=true;object.receiveShadow=true;}});
+ root.updateMatrixWorld(true);
+ const mixer=new THREE.AnimationMixer(root),actions={};
+ for(const clip of gltf.animations){actions[clip.name.toLowerCase()]=mixer.clipAction(clip);}
+ return {root,mixer,actions};
+}
+function playOperatorAction(enemy,name,loop=true){
+ if(!enemy.actions)return;
+ const action=enemy.actions[name.toLowerCase()];if(!action)return;
+ if(enemy.currentAction===action)return;
+ if(enemy.currentAction)enemy.currentAction.fadeOut(.16);
+ action.reset();action.setLoop(loop?THREE.LoopRepeat:THREE.LoopOnce,loop?Infinity:1);action.clampWhenFinished=!loop;action.fadeIn(.16).play();enemy.currentAction=action;
+}
+async function replaceWithAnimatedOperator(enemy,id){
+ try{
+  const model=await createOperatorModel(id);
+  if(!active||!enemies.includes(enemy)||!enemy.alive)return;
+  model.root.position.x+=enemy.mesh.position.x;model.root.position.z+=enemy.mesh.position.z;
+  const fallback=enemy.mesh;scene.remove(fallback);scene.add(model.root);enemy.mesh=model.root;enemy.mixer=model.mixer;enemy.actions=model.actions;enemy.currentAction=null;playOperatorAction(enemy,'Idle');
+ }catch(error){console.warn('GLB operator unavailable; procedural fallback retained:',id,error);}
+}
 const material=(color,roughness=.85)=>new THREE.MeshStandardMaterial({color,roughness});
 function show(which){menu.classList.toggle('hidden',which!=='menu');game.classList.toggle('hidden',which!=='game');result.classList.toggle('hidden',which!=='result');document.body.classList.toggle('in-game',which==='game');}
 function box(x,y,z,w,h,d,color){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material(color));m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);return m;}
@@ -55,7 +89,8 @@ function spawnEnemies(count){
  const colors=[0x9c594c,0x756d56,0x555e70,0x8b6c4c,0x596d62,0x7b5968,0x66645a,0x4f6872];
  for(let i=0;i<count;i++){let x,z,tries=0;do{x=(Math.random()-.5)*48;z=(Math.random()-.5)*48;tries++;}while((Math.hypot(x,z-25)<12||blocked(x,z))&&tries<80);
  const mesh=makeOperator(colors[i%colors.length],true);mesh.position.set(x,0,z);scene.add(mesh);
- enemies.push({mesh,health:100,speed:1.6+Math.random()*.9,cooldown:1+Math.random()*2,phase:Math.random()*5,alive:true,strafe:Math.random()<.5?-1:1});
+ const enemy={mesh,health:100,speed:1.6+Math.random()*.9,cooldown:1+Math.random()*2,phase:Math.random()*5,alive:true,strafe:Math.random()<.5?-1:1,mixer:null,actions:null,currentAction:null,actionLockUntil:0};
+ enemies.push(enemy);replaceWithAnimatedOperator(enemy,operatorModelIds[i%operatorModelIds.length]);
  }
  updateHud();
 }
