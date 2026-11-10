@@ -26,6 +26,19 @@ No Node.js application, npm install, database, PHP endpoint or persistent game s
 
 The supplied `.htaccess` disables directory listings and enables basic compression/cache headers where supported.
 
+## Higher-quality combat asset import
+
+The optional combat asset pack is downloaded locally with PowerShell:
+
+```powershell
+Set-Location "C:\Games\shoter_game_ofline"
+powershell -ExecutionPolicy Bypass -File ".\tools\import_combat_assets.ps1"
+```
+
+The script downloads selected rigged soldier, first-person weapon, environment prop and recorded sound assets into `public/assets/combat/`, validates GLB/Ogg file signatures, and stores the upstream attribution/licence notes at `public/assets/credits/IRONLINE_ASSET_CREDITS.md`. The browser uses the imported soldier and first-person weapon models when present; otherwise it keeps the current fallback models. Recorded gunfire/reload sounds are used when present, with synthesized fallback audio if they are absent.
+
+After the script completes, commit and push the downloaded binary assets so GitHub Pages/cPanel deployments can serve them. The service worker treats these imported assets as optional during installation, so a missing asset cannot prevent the base game from starting.
+
 ## Run locally
 
 Because the game uses JavaScript modules and a service worker, serve `public/` through HTTP rather than opening the file directly with `file://`.
