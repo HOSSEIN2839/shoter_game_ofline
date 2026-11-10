@@ -313,6 +313,7 @@ function spawnDamagePopup(position,amount,headshot=false){
  damagePopups.push({sprite,texture,life:.72,maxLife:.72});
 }
 function spawnHitParticles(position){
+ playAssetAudio('impact_generic_light.ogg',.5,.95);
  const colors=[0x9e2028,0xd64040,0x6e151d];
  for(let i=0;i<9;i++){
   const mesh=new THREE.Mesh(new THREE.SphereGeometry(.035+Math.random()*.025,6,5),new THREE.MeshBasicMaterial({color:colors[i%colors.length],transparent:true,opacity:.95}));
@@ -385,6 +386,7 @@ function soundReload(){
  const file=weapon==='shotgun'?'shotgun_pump.ogg':weapon==='pistol'?'pistol_magout.ogg':'rifle_magout.ogg';
  playAssetAudio(file,.7,1,()=>{try{audioContext=audioContext||new (window.AudioContext||window.webkitAudioContext)();const o=audioContext.createOscillator(),g=audioContext.createGain();o.frequency.value=520;g.gain.value=.035;o.connect(g);g.connect(audioContext.destination);o.start();o.stop(audioContext.currentTime+.07);}catch(e){}});
 }
+function soundReloadFinish(){const file=weapon==='shotgun'?'shotgun_shell.ogg':weapon==='pistol'?'pistol_magin.ogg':'rifle_magin.ogg';playAssetAudio(file,.65,1);}
 
 
 function shoot(){
@@ -396,7 +398,7 @@ function shoot(){
  if(hit){let enemy=enemies.find(e=>e.alive&&(e.mesh===hit.object||e.mesh.getObjectById(hit.object.id)));if(enemy){const headshot=hit.object.name.toLowerCase().includes('head')||hit.point.y>enemy.mesh.position.y+1.55;showHitMarker(headshot);$('notice').textContent=headshot?'HEADSHOT':'TARGET HIT';const dealt=w.damage*(headshot?2:1);enemy.health=Math.max(0,enemy.health-dealt);updateEnemyHealthBar(enemy);spawnHitParticles(hit.point);spawnDamagePopup(hit.point,dealt,headshot);enemy.hitUntil=performance.now()+180;enemy.actionLockUntil=performance.now()+420;playOperatorAction(enemy,'Hit',false);enemy.mesh.traverse(part=>{if(part.isMesh&&part.material&&part.material.emissive){part.material.emissive.setHex(0x661111);setTimeout(()=>part.material.emissive?.setHex(0x000000),150);}});if(enemy.health<=0){enemy.alive=false;if(enemy.healthBar)enemy.healthBar.visible=false;playOperatorAction(enemy,'Death',false);if(!enemy.mixer)enemy.mesh.visible=false;else setTimeout(()=>{if(enemy.mesh)enemy.mesh.visible=false;},2300);kills++;$('notice').textContent='HOSTILE ELIMINATED';if(enemies.every(e=>!e.alive)){wave++;setTimeout(()=>{if(active){spawnEnemies(Math.min(3+wave*2,12));$('notice').textContent='WAVE '+wave+' — INCOMING HOSTILES';}},1300);}}}}
  updateHud();
 }
-function reload(){soundReload();playViewWeaponAction('reload',false);if(reloading||ammo[weapon]===weapons[weapon].mag)return;reloading=true;$('notice').textContent='RELOADING';setTimeout(()=>{ammo[weapon]=weapons[weapon].mag;reloading=false;updateHud();$('notice').textContent='';},weapon==='sniper'?1900:1400);}
+function reload(){soundReload();playViewWeaponAction('reload',false);if(reloading||ammo[weapon]===weapons[weapon].mag)return;reloading=true;$('notice').textContent='RELOADING';setTimeout(()=>{ammo[weapon]=weapons[weapon].mag;reloading=false;soundReloadFinish();updateHud();$('notice').textContent='';},weapon==='sniper'?1900:1400);}
 function damagePlayer(amount){health=Math.max(0,health-amount);document.body.classList.add('taking-damage');clearTimeout(damageFlashTimer);damageFlashTimer=setTimeout(()=>document.body.classList.remove('taking-damage'),240);updateHud();if(health<=0){active=false;if(document.pointerLockElement)document.exitPointerLock();cancelAnimationFrame(raf);$('resultTitle').textContent='YOU WERE ELIMINATED';$('resultText').textContent='Hostiles eliminated: '+kills+' · Wave reached: '+wave;show('result');}}
 function updateEnemies(dt){
  const player={x:camera.position.x,z:camera.position.z};
@@ -419,6 +421,7 @@ function animate(){
  if(!blocked(camera.position.x,camera.position.z+dz,.55))camera.position.z+=dz;
  if(keys.Space&&grounded){velocityY=JUMP_SPEED;grounded=false;keys.Space=false;}
  velocityY-=GRAVITY*dt;camera.position.y+=velocityY*dt;if(camera.position.y<=PLAYER_EYE){camera.position.y=PLAYER_EYE;velocityY=0;grounded=true;}
+ const movingOnGround=(forward!==0||side!==0)&&grounded;if(movingOnGround){footstepTimer-=dt;if(footstepTimer<=0){playAssetAudio('footstep_concrete.ogg',.24,keys.ShiftLeft?1.15:1);footstepTimer=keys.ShiftLeft?.34:.48;}}else footstepTimer=0;
  aiming=!!(keys.MouseRight||keys.KeyC);camera.fov=THREE.MathUtils.lerp(camera.fov,aiming?48:75,Math.min(1,dt*12));camera.updateProjectionMatrix();
  camera.rotation.order='YXZ';camera.rotation.y=yaw;camera.rotation.x=pitch;
  const weaponModel=camera.children.find(o=>o.name==='viewWeapon');if(weaponModel){weaponModel.position.z=weaponKick;weaponKick*=Math.pow(.025,dt);weaponModel.position.y=aiming?-.035:0;}
