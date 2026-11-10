@@ -6,6 +6,8 @@ const $ = id => document.getElementById(id);
 const menu=$('menu'), game=$('game'), result=$('result'), host=$('gameCanvas');
 let scene,camera,renderer,clock,raf,muzzleFlash=null,active=false,paused=false,health=100,kills=0,wave=1;
 let enemies=[],keys={},weapon='rifle',ammo={},lastShot=0,reloading=false,playerSpeed=7,yaw=0,pitch=0;
+let velocityY=0,grounded=true,aiming=false,footstepTimer=0,weaponKick=0;
+const PLAYER_EYE=1.7,GRAVITY=22,JUMP_SPEED=8.2;
 const difficultyLevel=()=>({easy:0,normal:1,hard:2}[$('difficulty').value]??1);
 const weapons={
  rifle:{label:'ASSAULT RIFLE',mag:30,ammo:30,damage:28,rate:125,range:65,pellets:1},
@@ -93,11 +95,14 @@ function updateEnemies(dt){
 function animate(){
  if(!active)return;raf=requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05);
  if(!paused){
- const forward=(keys.KeyW?1:0)-(keys.KeyS?1:0),side=(keys.KeyD?1:0)-(keys.KeyA?1:0),len=Math.hypot(forward,side)||1,speed=keys.ShiftLeft?playerSpeed*1.5:playerSpeed;
+ const forward=(keys.KeyW?1:0)-(keys.KeyS?1:0),side=(keys.KeyD?1:0)-(keys.KeyA?1:0),len=Math.hypot(forward,side)||1,speed=(keys.ShiftLeft?playerSpeed*1.5:playerSpeed)*(aiming?.62:1);
  const fx=Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=Math.sin(yaw);
  const dx=(fx*forward+rx*side)/len*speed*dt,dz=(fz*forward+rz*side)/len*speed*dt;
  if(!blocked(camera.position.x+dx,camera.position.z,.55))camera.position.x+=dx;
  if(!blocked(camera.position.x,camera.position.z+dz,.55))camera.position.z+=dz;
+ if(keys.Space&&grounded){velocityY=JUMP_SPEED;grounded=false;keys.Space=false;}
+ velocityY-=GRAVITY*dt;camera.position.y+=velocityY*dt;if(camera.position.y<=PLAYER_EYE){camera.position.y=PLAYER_EYE;velocityY=0;grounded=true;}
+ aiming=!!(keys.MouseRight||keys.KeyC);camera.fov=THREE.MathUtils.lerp(camera.fov,aiming?48:75,Math.min(1,dt*12));camera.updateProjectionMatrix();
  camera.rotation.order='YXZ';camera.rotation.y=yaw;camera.rotation.x=pitch;
  updateEnemies(dt);if(enemies.every(e=>!e.alive)&&active){/* next wave scheduled after last elimination */}
  }
@@ -113,6 +118,8 @@ document.addEventListener('pointerlockchange',()=>{if(document.pointerLockElemen
 document.addEventListener('mousemove',e=>{if(document.pointerLockElement!==renderer?.domElement||!active||paused)return;yaw-=e.movementX*.0022;pitch=Math.max(-1.25,Math.min(1.25,pitch-e.movementY*.0022));});
 document.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='KeyR')reload();if(/^Digit[1-4]$/.test(e.code)){weapon=['rifle','sniper','shotgun','pistol'][Number(e.code.slice(-1))-1];updateHud();}if(e.code==='Escape'&&active){$('notice').textContent='CLICK THE ARENA TO RESUME';}});
 document.addEventListener('keyup',e=>keys[e.code]=false);
-document.addEventListener('mousedown',e=>{if(e.button===0)shoot();});
+document.addEventListener('mousedown',e=>{if(e.button===0)shoot();if(e.button===2)aiming=true;});
+document.addEventListener('mouseup',e=>{if(e.button===2)aiming=false;});
+document.addEventListener('contextmenu',e=>{if(active)e.preventDefault();});
 window.addEventListener('resize',()=>{if(!renderer||!camera)return;const w=Math.max(1,host.clientWidth||window.innerWidth),h=Math.max(1,host.clientHeight||window.innerHeight);camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);});
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
