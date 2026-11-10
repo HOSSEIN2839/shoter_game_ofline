@@ -56,26 +56,198 @@ function box(x,y,z,w,h,d,color){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h
 function blocked(x,z,r=.65){return obstacles.some(o=>Math.abs(x-o.x)<o.w/2+r&&Math.abs(z-o.z)<o.d/2+r);}
 function hasLineOfSight(from,to){const delta=to.clone().sub(from),distance=delta.length();if(distance<.01)return true;const ray=new THREE.Raycaster(from.clone(),delta.normalize(),.05,distance-.15);return ray.intersectObjects(obstacles.map(o=>o.mesh).filter(Boolean),false).length===0;}
 function makeArena(){
- scene=new THREE.Scene();scene.background=new THREE.Color(0x82929a);scene.fog=new THREE.Fog(0x82929a,48,105);
- const viewWidth=Math.max(1,host.clientWidth||window.innerWidth),viewHeight=Math.max(1,host.clientHeight||window.innerHeight);camera=new THREE.PerspectiveCamera(75,viewWidth/viewHeight,.1,150);camera.position.set(0,1.7,25);scene.add(camera);
+ scene=new THREE.Scene();
+ scene.background=new THREE.Color(0x9aa7ad);
+ scene.fog=new THREE.FogExp2(0x9aa7ad,.0085);
+ const viewWidth=Math.max(1,host.clientWidth||window.innerWidth),viewHeight=Math.max(1,host.clientHeight||window.innerHeight);
+ camera=new THREE.PerspectiveCamera(75,viewWidth/viewHeight,.1,180);
+ camera.position.set(0,1.7,25);scene.add(camera);
+
+ // First-person weapon placeholder.
  const viewWeapon=new THREE.Group();viewWeapon.name='viewWeapon';
  const receiver=new THREE.Mesh(new THREE.BoxGeometry(.22,.17,.62),material(0x27313a));receiver.position.set(.34,-.27,-.58);viewWeapon.add(receiver);
  const barrel=new THREE.Mesh(new THREE.CylinderGeometry(.035,.04,.55,8),material(0x111820));barrel.rotation.x=Math.PI/2;barrel.position.set(.34,-.22,-1.12);viewWeapon.add(barrel);
  const stock=new THREE.Mesh(new THREE.BoxGeometry(.16,.13,.28),material(0x414b4c));stock.position.set(.34,-.28,-.18);viewWeapon.add(stock);
  const grip=new THREE.Mesh(new THREE.BoxGeometry(.12,.23,.15),material(0x20272c));grip.position.set(.34,-.45,-.42);grip.rotation.x=-.18;viewWeapon.add(grip);
  const sight=new THREE.Mesh(new THREE.BoxGeometry(.07,.08,.12),material(0x101519));sight.position.set(.34,-.16,-.58);viewWeapon.add(sight);
- muzzleFlash=new THREE.Mesh(new THREE.SphereGeometry(.085,8,6),new THREE.MeshBasicMaterial({color:0xffbd54}));muzzleFlash.position.set(.34,-.22,-1.42);muzzleFlash.visible=false;viewWeapon.add(muzzleFlash);
- camera.add(viewWeapon);
- renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));renderer.setSize(host.clientWidth,host.clientHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;host.replaceChildren(renderer.domElement);
- scene.add(new THREE.HemisphereLight(0xdcecff,0x38412f,2.1));const sun=new THREE.DirectionalLight(0xffe3c1,2.2);sun.position.set(-15,28,10);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-48;sun.shadow.camera.right=48;sun.shadow.camera.top=48;sun.shadow.camera.bottom=-48;sun.shadow.bias=-.00018;scene.add(sun);
- const ground=new THREE.Mesh(new THREE.PlaneGeometry(90,90),material(0x69745f));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
- const grid=new THREE.GridHelper(90,45,0x73806b,0x58634f);grid.position.y=.02;scene.add(grid);
+ muzzleFlash=new THREE.Mesh(new THREE.SphereGeometry(.085,8,6),new THREE.MeshBasicMaterial({color:0xffbd54}));muzzleFlash.position.set(.34,-.22,-1.42);muzzleFlash.visible=false;viewWeapon.add(muzzleFlash);camera.add(viewWeapon);
+
+ renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+ renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));renderer.setSize(host.clientWidth,host.clientHeight);
+ renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;
+ renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;host.replaceChildren(renderer.domElement);
+
+ scene.add(new THREE.HemisphereLight(0xdcecff,0x45402f,2.0));
+ const sun=new THREE.DirectionalLight(0xffe1bd,2.35);sun.position.set(-24,36,18);sun.castShadow=true;
+ sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-48;sun.shadow.camera.right=48;sun.shadow.camera.top=48;sun.shadow.camera.bottom=-48;sun.shadow.bias=-.0002;scene.add(sun);
+ const fill=new THREE.DirectionalLight(0xa8c9e8,.55);fill.position.set(24,12,-20);scene.add(fill);
+
  obstacles.length=0;windFoliage.length=0;
- const add=(x,z,w,h,d,c)=>{const mesh=box(x,h/2,z,w,h,d,c);obstacles.push({x,z,w,d,mesh});};
- add(0,-34,70,5,2,0x59615e);add(0,34,70,5,2,0x59615e);add(-34,0,2,5,70,0x59615e);add(34,0,2,5,70,0x59615e);
- [[-18,-16,8,5],[17,-15,7,6],[-18,16,7,5],[18,17,8,5],[0,-21,10,3],[0,21,10,3],[-8,0,3,8],[8,0,3,8],[-25,0,3,3],[25,0,3,3]].forEach((a,i)=>add(a[0],a[1],a[2],3,a[3],i%2?0x68746c:0x7d6650));
- for(const [x,z] of [[-11,-8],[11,8],[-12,9],[12,-9]]){const b=box(x,.58,z,5.5,1.16,.72,0x777b73);b.rotation.y=.15;obstacles.push({x,z,w:5.5,d:.72});}
- for(let i=0;i<16;i++){const x=(i%4)*15-22,z=Math.floor(i/4)*18-18;const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.18,.3,2.8,7),material(0x5c4632));trunk.position.set(x,1.4,z);scene.add(trunk);const crown=new THREE.Mesh(new THREE.ConeGeometry(1.4,3.6,7),material(0x3e5941));crown.position.set(x,4,z);crown.castShadow=true;crown.receiveShadow=true;scene.add(crown);windFoliage.push({mesh:crown,phase:Math.random()*Math.PI*2,amount:.018+Math.random()*.018});}
+ const mat=(color,roughness=.9)=>new THREE.MeshStandardMaterial({color,roughness});
+ const metal=(color)=>new THREE.MeshStandardMaterial({color,roughness:.58,metalness:.48});
+ const ground=new THREE.Mesh(new THREE.PlaneGeometry(110,110),mat(0x777967));ground.rotation.x=-Math.PI/2;ground.position.y=-.08;ground.receiveShadow=true;scene.add(ground);
+ const add=(x,z,w,h,d,c,opts={})=>{
+  const mesh=box(x,h/2,z,w,h,d,c);if(opts.rotation)mesh.rotation.y=opts.rotation;
+  obstacles.push({x,z,w,d,mesh});return mesh;
+ };
+ const decoBox=(x,y,z,w,h,d,materialOrColor,rotation=0)=>{
+  const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),typeof materialOrColor==='number'?mat(materialOrColor):materialOrColor);
+  mesh.position.set(x,y,z);mesh.rotation.y=rotation;mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh);return mesh;
+ };
+ const cylinder=(x,y,z,rTop,rBottom,h,color,segments=10)=>{
+  const mesh=new THREE.Mesh(new THREE.CylinderGeometry(rTop,rBottom,h,segments),mat(color));
+  mesh.position.set(x,y,z);mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh);return mesh;
+ };
+ const line=(x,z,w,d,y,color,opacity=1)=>{
+  const mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,d),new THREE.MeshBasicMaterial({color,transparent:opacity<1,opacity,side:THREE.DoubleSide,depthWrite:opacity===1}));
+  mesh.rotation.x=-Math.PI/2;mesh.position.set(x,y,z);scene.add(mesh);return mesh;
+ };
+
+ // Dusty perimeter terrain, concrete apron and a worn asphalt service road.
+ const asphalt=mat(0x343b3b),concrete=mat(0x929188),sand=mat(0x8b8268);
+ const road=new THREE.Mesh(new THREE.PlaneGeometry(9,72),asphalt);road.rotation.x=-Math.PI/2;road.position.y=.008;road.receiveShadow=true;scene.add(road);
+ const apron=new THREE.Mesh(new THREE.PlaneGeometry(62,48),concrete);apron.rotation.x=-Math.PI/2;apron.position.set(0,.012,0);apron.receiveShadow=true;scene.add(apron);
+ const shoulder1=new THREE.Mesh(new THREE.PlaneGeometry(13,72),sand);shoulder1.rotation.x=-Math.PI/2;shoulder1.position.set(-11,.004,0);scene.add(shoulder1);
+ const shoulder2=shoulder1.clone();shoulder2.position.x=11;scene.add(shoulder2);
+ for(let z=-30;z<=30;z+=6){line(0,z,.16,2.7,.025,0xd4c99c,.8);}
+ line(-4.15,0,.12,68,.026,0xb9b6a8,.55);line(4.15,0,.12,68,.026,0xb9b6a8,.55);
+ // Concrete expansion joints and painted tactical markings.
+ for(let x=-27;x<=27;x+=9)line(x,0,.045,44,.022,0x656d68,.45);
+ for(let z=-21;z<=21;z+=7)line(0,z,58,.045,.023,0x656d68,.38);
+ line(0,-27,12,.35,.03,0xe4d9b5,.9);line(0,-27,.35,8,.031,0xe4d9b5,.9);
+
+ // Perimeter wall, warning stripes and corner watch towers.
+ add(0,-36,76,5.2,1.4,0x59615f);add(0,36,76,5.2,1.4,0x59615f);
+ add(-37,0,1.4,5.2,72,0x59615f);add(37,0,1.4,5.2,72,0x59615f);
+ for(let x=-30;x<=30;x+=10){decoBox(x,3.05,-35.22,3.2,.12,.035,0xd0b66e);decoBox(x,3.05,35.22,3.2,.12,.035,0xd0b66e);}
+ for(const [x,z] of [[-34,-33],[34,-33],[-34,33],[34,33]]){
+  add(x,z,4.2,7,4.2,0x555d59);
+  decoBox(x,7.15,z,5.2,.35,5.2,metal(0x4a5354));
+  for(const dx of [-1.25,1.25])for(const dz of [-1.25,1.25])cylinder(x+dx,8.1,z+dz,.045,.045,1.6,0x303a3b,8);
+  const lamp=new THREE.PointLight(0xffd28a,.55,9);lamp.position.set(x,6.3,z);scene.add(lamp);
+ }
+
+ // Main structures: command building, barracks, vehicle garage and maintenance shed.
+ const building=(x,z,w,d,h,wallColor,accentColor)=>{
+  add(x,z,w,h,d,wallColor);
+  decoBox(x,h+.12,z,w+.35,.24,d+.35,metal(0x454e50));
+  // Roof parapets.
+  decoBox(x,h+.42,z-d/2,w,.55,.18,accentColor);decoBox(x,h+.42,z+d/2,w,.55,.18,accentColor);
+  decoBox(x-w/2,z*0+h+.42,z,w? .18:.18,d,.55,accentColor);
+  decoBox(x+w/2,h+.42,z,.18,.55,d,accentColor);
+  // Recessed dark windows and a heavy entrance.
+  for(let wx=-w*.32;wx<=w*.33;wx+=w*.32){
+   decoBox(x+wx,h*.58,z-d/2-.012,1.35,.72,.035,metal(0x263b45));
+   decoBox(x+wx,h*.58,z-d/2-.04,1.5,.08,.05,metal(0x596a6d));
+  }
+  decoBox(x,h*.48,z+d/2+.025,1.55,1.9,.09,metal(0x303b3b));
+  decoBox(x,h*.48,z+d/2+.08,.12,1.8,.025,metal(0xa58c5b));
+  for(let wx=-w*.38;wx<=w*.39;wx+=w*.19)decoBox(x+wx,h+.65,z,.12,.22,.12,0x737b78);
+ };
+ building(-23,-20,17,12,6.2,0x77786e,0x4b5553);
+ building(23,-20,15,12,5.4,0x817b6c,0x505957);
+ building(-24,13,13,10,4.8,0x77766b,0x4b5553);
+ building(24,13,14,11,5.1,0x777a72,0x4b5553);
+
+ // Loading dock, roller shutters, rooftop HVAC and fuel storage.
+ for(const x of [-27,-23,-19,20,24,28]){
+  decoBox(x,1.4,-13,2.2,2.8,.12,metal(0x3c4848));
+  for(let y=.35;y<2.7;y+=.32)decoBox(x,y,-13.075,2.05,.035,.035,metal(0x78817d));
+ }
+ for(const [x,z] of [[-28,-19],[-18,-21],[20,-19],[27,-21],[-27,13],[25,13]]){
+  const unit=decoBox(x,6.65,z,2.1,.8,1.25,metal(0x69716d));
+  for(let k=-2;k<=2;k++)decoBox(x+k*.3,7.08,z,.055,.08,1.1,metal(0x303b3b));
+ }
+ for(const [x,z] of [[-13,-25],[13,-25]]){
+  cylinder(x,1.5,z,1.05,1.05,3,0x68716e,16);
+  cylinder(x,3.05,z,1.1,1.1,.12,0x3f4949,16);
+  decoBox(x,2.3,z,2.2,.12,.12,0x4c5654);
+ }
+
+ // Shipping containers: stacked ribs, doors and corner castings.
+ const container=(x,z,color,rotation=0)=>{
+  const body=decoBox(x,1.35,z,9,2.7,3,metal(color),rotation);
+  for(let i=-4;i<=4;i++){
+   const rib=decoBox(x+i*.92,1.35,z-1.53,.075,2.48,.08,metal(0x9a9b8d),rotation);
+   const p=new THREE.Vector3(x+i*.92,1.35,z-1.53).sub(new THREE.Vector3(x,1.35,z));
+   p.applyAxisAngle(new THREE.Vector3(0,1,0),rotation);rib.position.set(x+p.x,1.35,z+p.z);
+  }
+  for(const dx of [-4.35,4.35])for(const dz of [-1.38,1.38]){
+   const p=new THREE.Vector3(dx,0,dz).applyAxisAngle(new THREE.Vector3(0,1,0),rotation);
+   decoBox(x+p.x,1.35,z+p.z,.18,2.65,.18,metal(0xb0a78b),rotation);
+  }
+  return body;
+ };
+ container(-10,-23,0x53665c,.04);container(10,-23,0x8b6848,-.04);
+ container(-13,23,0x596b72,.12);container(13,23,0x6c6655,-.12);
+
+ // Combat cover: HESCO barriers, concrete jersey barriers, sandbag nests and crates.
+ const hesco=(x,z,w=4)=>{
+  add(x,z,w,1.35,1.35,0x8b8066);
+  for(let y=.22;y<1.25;y+=.28)decoBox(x, y,z,w+.02,.035,1.38,metal(0xaaa083));
+  for(let xx=-w/2+.2;xx<w/2;xx+=.42)decoBox(x+xx,.68,z-0.69,.045,1.22,.035,metal(0x5b625c));
+ };
+ hesco(-8,-8,5);hesco(8,-8,5);hesco(-8,8,5);hesco(8,8,5);
+ const jersey=(x,z,rotation=0)=>{
+  const m=decoBox(x,.62,z,5.2,1.24,.72,0x858a82,rotation);
+  const cap=decoBox(x,1.27,z,5.3,.12,.8,metal(0xb5b4a8),rotation);
+  obstacles.push({x,z,w:5.2,d:.9,mesh:m});
+ };
+ jersey(-17,-5,.08);jersey(17,-5,-.08);jersey(-17,6,-.08);jersey(17,6,.08);
+ for(const [x,z] of [[-3,-14],[3,-14],[-3,14],[3,14],[-25,0],[25,0]]){
+  add(x,z,2.2,1.35,2.2,0x8b7659);
+  for(let i=-1;i<=1;i++)decoBox(x+i*.58,.7,z-1.12,.08,1.25,.08,metal(0x4b514d));
+ }
+ const crate=(x,z,s=1)=>{
+  add(x,z,1.35*s,1.35*s,1.35*s,0x66533d);
+  for(let i=-1;i<=1;i++)decoBox(x+i*.35*s,.68*s,z-0.69*s,.07*s,1.25*s,.04*s,metal(0x9a8058));
+ };
+ for(const [x,z] of [[-14,-2],[-12,2],[14,-2],[12,2],[-4,20],[4,20],[-4,-20],[4,-20]])crate(x,z,.85);
+
+ // Guard rails, traffic control, barrels and warning bollards.
+ for(const [x,z,rot] of [[-5,-29,0],[5,-29,0],[-5,29,0],[5,29,0]]){
+  for(let i=-2;i<=2;i++)cylinder(x+i*.8,.62,z,.055,.055,1.24,0xd1b77b,8);
+  decoBox(x,.95,z,4.2,.1,.12,metal(0x3f4948),rot);
+ }
+ for(const [x,z] of [[-6,-3],[6,-3],[-6,3],[6,3],[-30,0],[30,0]]){
+  cylinder(x,.52,z,.34,.34,1.04,0x9b603b,12);
+  cylinder(x,1.06,z,.35,.35,.08,metal(0x414b4b),12);
+  for(let y=.2;y<.95;y+=.28)decoBox(x,y,z,.72,.08,.74,0xd1b36b);
+ }
+
+ // Floodlight poles and cables.
+ for(const [x,z] of [[-31,-15],[31,-15],[-31,15],[31,15],[-8,-31],[8,-31]]){
+  cylinder(x,4.2,z,.11,.17,8.4,metal(0x414b4c),10);
+  decoBox(x,8.35,z,1.6,.12,.45,metal(0x303a3b));
+  for(const dx of [-.48,.48]){
+   const lamp=new THREE.SpotLight(0xffe4b5,1.1,24,.65,.5,1);lamp.position.set(x+dx,8.2,z);lamp.target.position.set(x+dx*.7,0,z);scene.add(lamp,lamp.target);
+   const bulb=new THREE.Mesh(new THREE.BoxGeometry(.38,.12,.28),new THREE.MeshBasicMaterial({color:0xffdf9b}));bulb.position.set(x+dx,8.22,z);scene.add(bulb);
+  }
+ }
+
+ // Sparse perimeter trees, scrub and tufts; foliage sways subtly in the wind.
+ for(let i=0;i<34;i++){
+  const angle=i/34*Math.PI*2,r=31+(i%3)*1.1,x=Math.cos(angle)*r,z=Math.sin(angle)*r;
+  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.12,.22,2.2,7),mat(0x594634));trunk.position.set(x,1.1,z);trunk.castShadow=true;scene.add(trunk);
+  const crown=new THREE.Mesh(new THREE.ConeGeometry(1.15,3.1,7),mat(i%2?0x40563c:0x526343));crown.position.set(x,3.2,z);crown.castShadow=true;crown.receiveShadow=true;scene.add(crown);
+  windFoliage.push({mesh:crown,phase:Math.random()*Math.PI*2,amount:.012+Math.random()*.016});
+ }
+ for(let i=0;i<85;i++){
+  const x=(Math.random()-.5)*68,z=(Math.random()-.5)*68;
+  if(Math.abs(x)<5||Math.abs(z)<5)continue;
+  const tuft=new THREE.Group();tuft.position.set(x,0,z);
+  for(let j=0;j<3;j++){
+   const blade=new THREE.Mesh(new THREE.ConeGeometry(.09,.55,4),mat(0x68754c));blade.position.set((Math.random()-.5)*.35,.25,(Math.random()-.5)*.35);blade.rotation.z=(Math.random()-.5)*.55;tuft.add(blade);
+  }
+  scene.add(tuft);
+ }
+ // Small navigation lights along the inner perimeter.
+ for(let x=-27;x<=27;x+=9){
+  for(const z of [-33,33]){
+   const post=cylinder(x,.55,z,.07,.07,1.1,metal(0x414b4b),8);
+   const lamp=new THREE.Mesh(new THREE.SphereGeometry(.12,8,6),new THREE.MeshBasicMaterial({color:0x8ed8d0}));lamp.position.set(x,1.15,z);scene.add(lamp);
+  }
+ }
 }
 function makeOperator(color,isEnemy=false){
  const g=new THREE.Group(),body=new THREE.Mesh(new THREE.CapsuleGeometry(.34,.78,4,8),material(color));body.name='body';body.position.y=1.02;body.castShadow=true;g.add(body);
