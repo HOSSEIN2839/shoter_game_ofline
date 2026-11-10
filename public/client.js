@@ -330,9 +330,32 @@ function start(){
 }
 let audioContext=null,damageFlashTimer=null,hitMarkerTimer=null;
 function showHitMarker(headshot=false){const marker=$('crosshair');if(!marker)return;marker.classList.remove('hit-confirm','headshot-confirm');void marker.offsetWidth;marker.classList.add(headshot?'headshot-confirm':'hit-confirm');clearTimeout(hitMarkerTimer);hitMarkerTimer=setTimeout(()=>marker.classList.remove('hit-confirm','headshot-confirm'),150);}
-function soundShot(){try{audioContext=audioContext||new (window.AudioContext||window.webkitAudioContext)();if(audioContext.state==='suspended')audioContext.resume();const t=audioContext.currentTime;const osc=audioContext.createOscillator(),gain=audioContext.createGain();osc.type='sawtooth';osc.frequency.setValueAtTime(115,t);osc.frequency.exponentialRampToValueAtTime(38,t+.12);gain.gain.setValueAtTime(.16,t);gain.gain.exponentialRampToValueAtTime(.001,t+.16);osc.connect(gain);gain.connect(audioContext.destination);osc.start(t);osc.stop(t+.17);const n=audioContext.createBuffer(1,Math.floor(audioContext.sampleRate*.11),audioContext.sampleRate),d=n.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(1-i/d.length);const src=audioContext.createBufferSource(),ng=audioContext.createGain();src.buffer=n;ng.gain.setValueAtTime(.11,t);ng.gain.exponentialRampToValueAtTime(.001,t+.11);src.connect(ng);ng.connect(audioContext.destination);src.start(t);}catch(e){}}
-function soundEnemyShot(){try{audioContext=audioContext||new (window.AudioContext||window.webkitAudioContext)();if(audioContext.state==='suspended')audioContext.resume();const o=audioContext.createOscillator(),g=audioContext.createGain();o.type='triangle';o.frequency.setValueAtTime(95,audioContext.currentTime);o.frequency.exponentialRampToValueAtTime(48,audioContext.currentTime+.09);g.gain.setValueAtTime(.035,audioContext.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioContext.currentTime+.1);o.connect(g);g.connect(audioContext.destination);o.start();o.stop(audioContext.currentTime+.11);}catch(e){}}
-function soundReload(){try{audioContext=audioContext||new (window.AudioContext||window.webkitAudioContext)();const o=audioContext.createOscillator(),g=audioContext.createGain();o.frequency.value=520;g.gain.value=.035;o.connect(g);g.connect(audioContext.destination);o.start();o.stop(audioContext.currentTime+.07);}catch(e){}}
+const audioAssetCache=new Map();
+function playAssetAudio(file,volume=.85,rate=1,fallback=null){
+ try{
+  const url='/assets/combat/audio/'+file;
+  let base=audioAssetCache.get(url);
+  if(!base){base=new Audio(url);base.preload='auto';audioAssetCache.set(url,base);}
+  const clip=base.cloneNode();clip.volume=volume;clip.playbackRate=rate;
+  const playing=clip.play();if(playing&&typeof playing.catch==='function')playing.catch(()=>{if(fallback)fallback();});
+ }catch(error){if(fallback)fallback();}
+}
+function soundShotSynth(){
+ try{audioContext=audioContext||new (window.AudioContext||window.webkitAudioContext)();if(audioContext.state==='suspended')audioContext.resume();const t=audioContext.currentTime;const osc=audioContext.createOscillator(),gain=audioContext.createGain();osc.type='sawtooth';osc.frequency.setValueAtTime(115,t);osc.frequency.exponentialRampToValueAtTime(38,t+.12);gain.gain.setValueAtTime(.16,t);gain.gain.exponentialRampToValueAtTime(.001,t+.16);osc.connect(gain);gain.connect(audioContext.destination);osc.start(t);osc.stop(t+.17);const n=audioContext.createBuffer(1,Math.floor(audioContext.sampleRate*.11),audioContext.sampleRate),d=n.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(1-i/d.length);const src=audioContext.createBufferSource(),ng=audioContext.createGain();src.buffer=n;ng.gain.setValueAtTime(.11,t);ng.gain.exponentialRampToValueAtTime(.001,t+.11);src.connect(ng);ng.connect(audioContext.destination);src.start(t);}catch(e){}
+}
+function soundShot(){
+ const file={rifle:'m4a1_player_near.ogg',sniper:'awm_player_near.ogg',shotgun:'shotgun_player_near.ogg',pistol:'m1911_player_near.ogg'}[weapon];
+ playAssetAudio(file||'m4a1_player_near.ogg',.9,weapon==='sniper'?.92:1,soundShotSynth);
+}
+function soundEnemyShot(){
+ try{playAssetAudio('m4a1_enemy_distant.ogg',.42,.96,()=>{audioContext=audioContext||new (window.AudioContext||window.webkitAudioContext)();if(audioContext.state==='suspended')audioContext.resume();const o=audioContext.createOscillator(),g=audioContext.createGain();o.type='triangle';o.frequency.setValueAtTime(95,audioContext.currentTime);o.frequency.exponentialRampToValueAtTime(48,audioContext.currentTime+.09);g.gain.setValueAtTime(.035,audioContext.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioContext.currentTime+.1);o.connect(g);g.connect(audioContext.destination);o.start();o.stop(audioContext.currentTime+.11);});}catch(e){}
+}
+function soundReload(){
+ const file=weapon==='shotgun'?'shotgun_pump.ogg':weapon==='pistol'?'pistol_magout.ogg':'rifle_magout.ogg';
+ playAssetAudio(file,.7,1,()=>{try{audioContext=audioContext||new (window.AudioContext||window.webkitAudioContext)();const o=audioContext.createOscillator(),g=audioContext.createGain();o.frequency.value=520;g.gain.value=.035;o.connect(g);g.connect(audioContext.destination);o.start();o.stop(audioContext.currentTime+.07);}catch(e){}});
+}
+
+
 function shoot(){
  if(!active||paused||document.pointerLockElement!==renderer.domElement||reloading)return;
  const w=weapons[weapon],now=performance.now();if(now-lastShot<w.rate)return;lastShot=now;
