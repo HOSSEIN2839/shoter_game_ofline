@@ -74,7 +74,7 @@ function updateEnemies(dt){
  if(dist>5){const nx=dx/(dist||1),nz=dz/(dist||1),step=e.speed*dt;const tx=p.x+nx*step,tz=p.z+nz*step;if(!blocked(tx,p.z,.5))p.x=tx;if(!blocked(p.x,tz,.5))p.z=tz;}
  else {p.x+=Math.cos(e.phase*1.7)*e.strafe*dt*.5;p.z+=Math.sin(e.phase*1.4)*dt*.35;}
  e.mesh.rotation.y=Math.atan2(dx,dz);
- e.cooldown-=dt;if(dist<30&&e.cooldown<=0){e.cooldown=(Number($('difficulty').value)==='hard'?0.65:Number($('difficulty').value)==='easy'?1.8:1.15)+Math.random()*.65;const accuracy=difficultyLevel()===2?.72:difficultyLevel()===0?.28:.48;if(Math.random()<accuracy)damagePlayer(difficultyLevel()===2?9:6);}
+ e.cooldown-=dt;if(dist<30&&e.cooldown<=0){e.cooldown=(Number($('difficulty').value)==='hard'?0.65:Number($('difficulty').value)==='easy'?1.8:1.15)+Math.random()*.65;const accuracy=difficultyLevel()===2 ? 0.72 : difficultyLevel()===0 ? 0.28 : 0.48;if(Math.random()<accuracy)damagePlayer(difficultyLevel()===2 ? 9 : 6);}
  }
 }
 function animate(){
