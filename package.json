@@ -1,0 +1,27 @@
+{
+  "name": "operation-strike",
+  "version": "0.4.0",
+  "private": true,
+  "description": "Browser-based real-time multiplayer FPS prototype",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "check": "node --check server.js && node --input-type=module --check < public/client.js && node scripts/check-assets.js",
+    "test:multiplayer": "node scripts/smoke-multiplayer.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.8.1",
+    "express": "^4.21.2",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.1"
+  }
+}
