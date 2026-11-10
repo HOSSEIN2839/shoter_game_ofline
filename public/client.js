@@ -6,7 +6,7 @@ const $ = id => document.getElementById(id);
 const menu=$('menu'), game=$('game'), result=$('result'), host=$('gameCanvas');
 let scene,camera,renderer,clock,raf,active=false,paused=false,health=100,kills=0,wave=1;
 let enemies=[],keys={},weapon='rifle',ammo={},lastShot=0,reloading=false,playerSpeed=7,yaw=0,pitch=0;
-const weapons={
+const difficultyLevel=()=>({easy:0,normal:1,hard:2}[$('difficulty').value]??1);\nconst weapons={
  rifle:{label:'ASSAULT RIFLE',mag:30,ammo:30,damage:28,rate:125,range:65,pellets:1},
  sniper:{label:'SNIPER RIFLE',mag:5,ammo:5,damage:100,rate:850,range:110,pellets:1},
  shotgun:{label:'SHOTGUN',mag:8,ammo:8,damage:17,rate:650,range:19,pellets:7},
@@ -74,7 +74,7 @@ function updateEnemies(dt){
  if(dist>5){const nx=dx/(dist||1),nz=dz/(dist||1),step=e.speed*dt;const tx=p.x+nx*step,tz=p.z+nz*step;if(!blocked(tx,p.z,.5))p.x=tx;if(!blocked(p.x,tz,.5))p.z=tz;}
  else {p.x+=Math.cos(e.phase*1.7)*e.strafe*dt*.5;p.z+=Math.sin(e.phase*1.4)*dt*.35;}
  e.mesh.rotation.y=Math.atan2(dx,dz);
- e.cooldown-=dt;if(dist<30&&e.cooldown<=0){e.cooldown=(Number($('difficulty').value)==='hard'?0.65:Number($('difficulty').value)==='easy'?1.8:1.15)+Math.random()*.65;const accuracy=Number($('difficulty').value)==='hard'?.72:Number($('difficulty').value)==='easy'?.28:.48;if(Math.random()<accuracy)damagePlayer(Number($('difficulty').value)==='hard'?9:6);}
+ e.cooldown-=dt;if(dist<30&&e.cooldown<=0){e.cooldown=(Number($('difficulty').value)==='hard'?0.65:Number($('difficulty').value)==='easy'?1.8:1.15)+Math.random()*.65;const accuracy=difficultyLevel()===2?.72:difficultyLevel()===0?.28:.48;if(Math.random()<accuracy)damagePlayer(difficultyLevel()===2?9:6);}
  }
 }
 function animate(){
