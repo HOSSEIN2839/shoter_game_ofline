@@ -166,7 +166,8 @@ function makeArena(){
 
  // Shipping containers: stacked ribs, doors and corner castings.
  const container=(x,z,color,rotation=0)=>{
-  const body=decoBox(x,1.35,z,9,2.7,3,metal(color),rotation);\n  obstacles.push({x,z,w:9,d:3,mesh:body});
+  const body=decoBox(x,1.35,z,9,2.7,3,metal(color),rotation);
+  obstacles.push({x,z,w:9,d:3,mesh:body});
   for(let i=-4;i<=4;i++){
    const rib=decoBox(x+i*.92,1.35,z-1.53,.075,2.48,.08,metal(0x9a9b8d),rotation);
    const p=new THREE.Vector3(x+i*.92,1.35,z-1.53).sub(new THREE.Vector3(x,1.35,z));
