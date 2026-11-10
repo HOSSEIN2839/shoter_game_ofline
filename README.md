@@ -5,7 +5,7 @@ A browser-based first-person shooter prototype for ordinary Apache/cPanel shared
 ## Current prototype
 
 - Single-player first-person arena.
-- Procedural training-yard environment with obstacles and basic foliage.
+- Expanded military outpost arena with command buildings, barracks, service road, container stacks, concrete cover, sandbag/HESCO positions, watchtowers, perimeter lighting and wind-swaying foliage.
 - Local enemy operators with prototype pursuit, strafing and attack behavior.
 - Eight local rigged GLB operator models, loaded through Three.js GLTFLoader.
 - Per-enemy skeleton-safe clones and independent AnimationMixers.
