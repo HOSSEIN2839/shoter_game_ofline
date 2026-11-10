@@ -1,29 +1,39 @@
 # OPERATION: STRIKE — Offline Single-Player
 
-A browser-based first-person shooter prototype designed for ordinary shared hosting (Apache/cPanel). The game logic runs in the visitor's browser; there is no multiplayer server, account system, Socket.IO service, Node.js runtime, or game database.
+A browser-based first-person shooter prototype for ordinary Apache/cPanel shared hosting. The game simulation runs in the visitor's browser. It does not require a multiplayer server, accounts, Socket.IO, Node.js, npm, PHP endpoints or a game database.
 
-## Current build
+## Current prototype
 
 - Single-player first-person arena.
-- Local enemy operators with basic pursuit, strafing and attack behavior.
+- Procedural training-yard environment with obstacles and basic foliage.
+- Local enemy operators with prototype pursuit, strafing and attack behavior.
+- Eight local rigged GLB operator models, loaded through Three.js GLTFLoader.
+- Per-enemy skeleton-safe clones and independent AnimationMixers.
+- Idle, Walk, Hit and Death animation states when matching clips are present.
 - Three difficulty settings and selectable enemy counts.
 - Four weapons: rifle, sniper, shotgun and pistol.
-- Health, ammunition, eliminations and wave HUD.
-- Keyboard/mouse controls and pause button.
-- Static HTML, CSS and JavaScript files suitable for cPanel hosting.
+- Health, ammunition, eliminations, waves and mission-result HUD.
+- Keyboard/mouse controls, pointer lock, pause and fullscreen.
+- Static HTML, CSS, JavaScript and same-origin assets.
+
+This is an evolving prototype, not yet a finished AAA-quality game. Browser validation of every model, animation, hitbox and offline scenario is still required.
 
 ## Hosting on cPanel
 
-Upload the **contents of the `public/` directory** into `public_html/` (or the document root of the chosen domain). Keep the directory structure intact. No Node.js application, npm install, database, or PHP endpoint is required for this build.
+Upload the **contents of the `public/` directory** into `public_html/` (or the selected domain's document root), preserving all subdirectories. Do not upload `docs/` or `tools/` into the public web root.
+
+No Node.js application, npm install, database, PHP endpoint or persistent game server is required. HTTPS is required for service-worker support on a deployed domain.
 
 The supplied `.htaccess` disables directory listings and enables basic compression/cache headers where supported.
 
 ## Run locally
 
-Because this uses JavaScript modules, open it through a local HTTP server rather than the `file://` protocol. For example, use VS Code Live Server, XAMPP/Apache, or Python's static server:
+Because the game uses JavaScript modules and a service worker, serve `public/` through HTTP rather than opening the file directly with `file://`.
+
+For example, from the repository root in PowerShell:
 
 ```powershell
-cd path\to\shoter_game_ofline\public
+cd .\public
 py -m http.server 8080
 ```
 
@@ -35,15 +45,20 @@ Then open `http://localhost:8080`.
 |---|---|
 | Move | W, A, S, D |
 | Sprint | Left Shift |
-| Aim | Mouse |
+| Aim | Right mouse button or C |
 | Fire | Left mouse button |
 | Reload | R |
 | Change weapon | 1–4 |
+| Jump | Space |
 | Pause | Pause button |
 | Release mouse | Escape |
 
-## Offline status and next work
+## Local runtime and character assets
 
-The game simulation is local and does not contact a game server. The current prototype still imports the Three.js engine from jsDelivr, so a first load requires internet access. The next packaging task is to vendor the exact Three.js module into `public/vendor/` and cache the local game shell with the service worker; only after that step should this repository be described as fully playable without internet after installation/cache.
+Three.js r170, GLTFLoader, SkeletonUtils, BufferGeometryUtils and the eight character GLBs are stored under `public/`. The browser imports the engine and models from the same origin; it does not need jsDelivr at runtime.
 
-Character models, polished animations, sound effects, mobile touch controls, persistence and comprehensive browser testing remain future work. Current enemy AI is an initial prototype, not advanced tactical AI.
+The service worker precaches the app shell, Three.js modules, character manifest and all eight GLBs during installation. Allow installation and cache completion to finish while online, then reload once under the service worker before testing with the network disabled. Offline behavior must still be confirmed in the target browser and hosting environment.
+
+## Current limitations and next work
+
+Enemy behavior is an initial prototype, not advanced tactical AI. Weapon meshes are procedural placeholders; sound is synthesized rather than using a finished audio library. Character models are low-poly CC0 assets, not photorealistic AAA art. Mobile touch controls, save/persistence, advanced maps, polished effects and comprehensive cross-browser testing remain future work.
