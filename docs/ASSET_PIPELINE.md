@@ -1,52 +1,86 @@
-# OPERATION: STRIKE — 3D Asset Pipeline
+# OPERATION: STRIKE — GLB Operator Pipeline
 
-## Verified repository state (2026-11-10)
+## Implemented on main
 
-The current playable prototype still builds its operator bodies from primitive Three.js geometry. There is no GLB character manifest, no GLB binary in `public/assets/`, and no GLTFLoader/SkeletonUtils integration in the current `public/client.js`. Do not describe model loading or skeletal animation as implemented.
+The browser code now contains a real glTF loading path:
 
-The map is also procedural geometry. The recent rendering pass adds ACES tone mapping, PCF soft shadows, shadow-camera bounds, animated tree crowns, cover-aware hitscan, line-of-sight checks for enemy firing, and headshot multipliers. These improve the prototype but do not replace a production environment or physics/collision engine.
+- Three.js `GLTFLoader` and `SkeletonUtils.clone` imports are configured through a same-origin import map.
+- Eight distinct operator IDs are mapped to local GLB paths.
+- Each source GLB is loaded once and cached as a template; each spawned enemy receives a skeleton-safe clone.
+- Model height is normalized to 1.8 metres and the model is grounded/centered from its bounds.
+- Each instance gets its own `AnimationMixer`.
+- Idle, Walk, Hit and Death clips are selected by clip name; other clips (Run, Attack, Special) remain available for later state transitions.
+- A procedural operator remains visible if a model is absent or fails to load.
 
-## Target character requirements
+The runtime code and import map are committed. **The binary GLB files and vendored Three.js modules are not in Git yet**, because the GitHub text-file connector cannot upload/download repository binary assets. Run the PowerShell acquisition script below on the Windows development PC to create them locally, then commit and push the generated folders.
 
-- Fully clothed modern tactical operators with distinct silhouettes and readable team identifiers.
-- glTF 2.0 / GLB assets with humanoid skeletons, sensible scale and origin, embedded or correctly referenced textures.
-- Separate animation clips where available: idle, walk, run, jump, aim, fire, reload, hit reaction and death.
-- Use `SkeletonUtils.clone()` for every skinned character instance; ordinary `Object3D.clone()` is not safe for independent skeleton animation.
-- Use `THREE.AnimationMixer` per character and cross-fade actions rather than abruptly switching clips.
-- Verify every asset using the Khronos glTF Validator before adding it to the public build.
+## Selected character pack
 
-## Candidate sources — verify the exact pack licence
+Gobkit Free Character Pack Vol.4, human004:
 
-### Gobkit free library
-- Manifest: https://gobkit.com/api/free
-- Guide: https://gobkit.com/freebies
-- The published manifest reports a CC0 1.0 library. It includes modern tactical-themed candidates such as ArmySniper, ArmyOfficer, CombatMedic, CombatEngineer, ReconScout, MachineGunner and Rifleman.
-- The free-pack manifest distinguishes separately named clips from legacy frame-range metadata. Read the current manifest instructions and use the clip names actually present in each downloaded GLB.
-- Skinned copies require skeleton-aware cloning.
-- Download and bundle the files into this repository; do not hotlink them at runtime if offline operation is required.
+- ArmyGeneral
+- ArmyOfficer
+- ArmySniper
+- CombatEngineer
+- CombatMedic
+- MachineGunner
+- ReconScout
+- Rifleman
 
-### Quaternius
-- Ultimate Modular Characters: https://quaternius.com/packs/ultimatemodularcharacters.html
-- Licence: https://quaternius.com/license.html
-- Verify the licence included with the exact downloaded pack. Do not assume the licence of an older pack applies to newer releases.
+Official pack: https://gobkit.com/freebies/human004/gobkit-human004-pack.zip
+Official manifest: https://gobkit.com/api/free
+Pack licence in the live manifest: CC0 1.0 Universal, public domain dedication, commercial use and redistribution permitted without attribution.
+Licence text: https://creativecommons.org/publicdomain/zero/1.0/
 
-### Khronos validator
-- Browser validator: https://github.khronos.org/glTF-Validator/
-- Source and CLI usage: https://github.com/KhronosGroup/glTF-Validator
+The live manifest lists all eight models as rigged and supplies seven named clips at 30 FPS: Idle, Walk, Run, Death, Hit, Attack and Special. The runtime selects clips by their actual names. The source models are low-poly; they are a real rigged starting pack, not photorealistic AAA character art.
 
-## Integration sequence
+## Acquire local runtime and model files
 
-1. Acquire a small representative character set and preserve the original licence/readme.
-2. Inspect model previews, skeletons, scale, facing, textures and animation clip names.
-3. Validate the GLB files; reject broken or oversized files.
-4. Add the binary files under `public/assets/characters/`.
-5. Vendor the matching Three.js release and its GLTFLoader and SkeletonUtils modules under `public/vendor/`.
-6. Implement a manifest-driven loader with a procedural fallback; use skeleton-aware clones and per-instance mixers.
-7. Add animation state transitions for locomotion, aim, fire, reload, hit and death.
-8. Test collision, hitboxes and performance with several simultaneous enemies.
-9. Update the service-worker cache only after all local paths are verified.
-10. Verify first-load network access, then disable the network and reload in a clean browser profile to prove offline operation.
+From the repository root in Windows PowerShell:
 
-## Hosting boundary
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\tools\prepare_offline_assets.ps1
+```
 
-Everything needed by the browser belongs inside `public/` and is copied into `public_html/` while preserving relative paths. Development notes and licence records remain in `docs/` and are not uploaded. No Node.js runtime or private PHP files are required by the current static prototype.
+The script downloads:
+- Three.js r170 core module and the exact matching GLTFLoader, SkeletonUtils and BufferGeometryUtils modules;
+- the eight GLB character files above;
+- the Three.js licence file;
+- a local character manifest recording source, licence and clip names.
+
+Expected output folders:
+
+```
+public/
+  vendor/three/
+    build/three.module.js
+    examples/jsm/loaders/GLTFLoader.js
+    examples/jsm/utils/SkeletonUtils.js
+    examples/jsm/utils/BufferGeometryUtils.js
+  assets/characters/
+    army-general.glb
+    army-officer.glb
+    army-sniper.glb
+    combat-engineer.glb
+    combat-medic.glb
+    machine-gunner.glb
+    recon-scout.glb
+    rifleman.glb
+    manifest.json
+```
+
+After the script completes, verify file sizes and run the game locally. Then commit and push the generated `public/vendor/` and `public/assets/` folders to `main`. Do not upload only the HTML/JS changes to hosting: the local Three.js modules are now required for the browser to start.
+
+## Validation checklist
+
+- Confirm all eight GLBs load without 404 or parse errors.
+- Confirm every model has a skeleton and all seven expected animation clips.
+- Confirm each enemy has an independent mixer (one character's animation must not drive another).
+- Check the ground contact, facing direction, hitbox height and scale in the actual browser.
+- Test idle/walk transitions, hit reaction, death playback, respawn/waves and 8+ simultaneous enemies.
+- After the first successful online load, disable network and reload to verify that the service worker cached the local modules and GLBs.
+
+## Hosting and offline boundary
+
+The browser only reads files from `public/`; upload the contents of `public/` into `public_html/`. Keep `docs/` and `tools/` out of the public web root. No Node.js, npm, Socket.IO or server runtime is needed. The app shell and Three.js imports now point to same-origin paths; full offline operation still depends on downloading and committing the binary assets, then completing the browser cache test.
