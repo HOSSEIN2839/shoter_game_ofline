@@ -1,18 +1,26 @@
 # OPERATION: STRIKE — GLB Operator Pipeline
 
-## Implemented on main
+## Assets committed to main
 
-The browser code now contains a real glTF loading path:
+The following runtime assets are now committed:
 
-- Three.js `GLTFLoader` and `SkeletonUtils.clone` imports are configured through a same-origin import map.
-- Eight distinct operator IDs are mapped to local GLB paths.
-- Each source GLB is loaded once and cached as a template; each spawned enemy receives a skeleton-safe clone.
-- Model height is normalized to 1.8 metres and the model is grounded/centered from its bounds.
-- Each instance gets its own `AnimationMixer`.
-- Idle, Walk, Hit and Death clips are selected by clip name; other clips (Run, Attack, Special) remain available for later state transitions.
-- A procedural operator remains visible if a model is absent or fails to load.
+- Three.js r170 core module.
+- Matching GLTFLoader, SkeletonUtils and BufferGeometryUtils modules.
+- Eight human004 GLB operators and a local manifest.
+- Three.js licence text.
 
-The runtime code and import map are committed. **The binary GLB files and vendored Three.js modules are not in Git yet**, because the GitHub text-file connector cannot upload/download repository binary assets. Run the PowerShell acquisition script below on the Windows development PC to create them locally, then commit and push the generated folders.
+The browser uses the same-origin import map in `public/index.html`; no CDN request is required for the 3D runtime.
+
+## Runtime integration
+
+- Eight operator IDs map to local GLB paths.
+- Each source GLB load is cached as a promise/template.
+- Each spawned enemy receives a skeleton-safe clone through `SkeletonUtils.clone`.
+- Model height is normalized to approximately 1.8 scene units and the model is grounded/centered from its bounds.
+- Each instance receives its own `AnimationMixer`.
+- The runtime selects Idle, Walk, Hit and Death by clip name when those clips exist.
+- A procedural operator remains as a fallback if loading fails.
+- Run, Attack and Special clips are available for later state-machine improvements if present in the source file.
 
 ## Selected character pack
 
@@ -29,31 +37,14 @@ Gobkit Free Character Pack Vol.4, human004:
 
 Official pack: https://gobkit.com/freebies/human004/gobkit-human004-pack.zip
 Official manifest: https://gobkit.com/api/free
-Pack licence in the live manifest: CC0 1.0 Universal, public domain dedication, commercial use and redistribution permitted without attribution.
-Licence text: https://creativecommons.org/publicdomain/zero/1.0/
+The source manifest identifies the pack as CC0 1.0 Universal. The models are low-poly rigged assets; they should not be described as photorealistic AAA characters.
 
-The live manifest lists all eight models as rigged and supplies seven named clips at 30 FPS: Idle, Walk, Run, Death, Hit, Attack and Special. The runtime selects clips by their actual names. The source models are low-poly; they are a real rigged starting pack, not photorealistic AAA character art.
-
-## Acquire local runtime and model files
-
-From the repository root in Windows PowerShell:
-
-```powershell
-Set-ExecutionPolicy -Scope Process Bypass
-.\tools\prepare_offline_assets.ps1
-```
-
-The script downloads:
-- Three.js r170 core module and the exact matching GLTFLoader, SkeletonUtils and BufferGeometryUtils modules;
-- the eight GLB character files above;
-- the Three.js licence file;
-- a local character manifest recording source, licence and clip names.
-
-Expected output folders:
+## Local asset layout
 
 ```
 public/
   vendor/three/
+    LICENSE.txt
     build/three.module.js
     examples/jsm/loaders/GLTFLoader.js
     examples/jsm/utils/SkeletonUtils.js
@@ -70,17 +61,19 @@ public/
     manifest.json
 ```
 
-After the script completes, verify file sizes and run the game locally. Then commit and push the generated `public/vendor/` and `public/assets/` folders to `main`. Do not upload only the HTML/JS changes to hosting: the local Three.js modules are now required for the browser to start.
+The PowerShell acquisition script is retained at `tools/prepare_offline_assets.ps1` for reproducibility. It is a development tool and should not be uploaded to the public web root.
 
-## Validation checklist
+## Validation still required
 
-- Confirm all eight GLBs load without 404 or parse errors.
-- Confirm every model has a skeleton and all seven expected animation clips.
-- Confirm each enemy has an independent mixer (one character's animation must not drive another).
-- Check the ground contact, facing direction, hitbox height and scale in the actual browser.
-- Test idle/walk transitions, hit reaction, death playback, respawn/waves and 8+ simultaneous enemies.
-- After the first successful online load, disable network and reload to verify that the service worker cached the local modules and GLBs.
+The repository contains all eight GLB files and their headers/lengths were checked on the development PC. That basic check does not prove that every file has a valid skeleton or the expected animation clips.
 
-## Hosting and offline boundary
+- Load all eight GLBs in the target browser and check for parse errors.
+- Confirm every model has a skeleton and inspect the actual animation clip names.
+- Confirm independent mixers: animating one enemy must not drive another.
+- Check ground contact, facing direction, scale and hitbox alignment.
+- Test Idle/Walk/Hit/Death transitions, wave respawn and eight simultaneous enemies.
+- Test offline mode after the service worker has installed and precached all listed assets.
 
-The browser only reads files from `public/`; upload the contents of `public/` into `public_html/`. Keep `docs/` and `tools/` out of the public web root. No Node.js, npm, Socket.IO or server runtime is needed. The app shell and Three.js imports now point to same-origin paths; full offline operation still depends on downloading and committing the binary assets, then completing the browser cache test.
+## Hosting
+
+Upload the contents of `public/` into `public_html/`, preserving the folder structure. Keep `docs/` and `tools/` outside the public web root. The project is a static browser build and does not need Node.js, npm, Socket.IO or a game database.
