@@ -23,7 +23,7 @@ function blocked(x,z,r=.65){return obstacles.some(o=>Math.abs(x-o.x)<o.w/2+r&&Ma
 function makeArena(){
  scene=new THREE.Scene();scene.background=new THREE.Color(0x82929a);scene.fog=new THREE.Fog(0x82929a,48,105);
  const viewWidth=Math.max(1,host.clientWidth||window.innerWidth),viewHeight=Math.max(1,host.clientHeight||window.innerHeight);camera=new THREE.PerspectiveCamera(75,viewWidth/viewHeight,.1,150);camera.position.set(0,1.7,25);scene.add(camera);
- const viewWeapon=new THREE.Group();
+ const viewWeapon=new THREE.Group();viewWeapon.name='viewWeapon';
  const receiver=new THREE.Mesh(new THREE.BoxGeometry(.22,.17,.62),material(0x27313a));receiver.position.set(.34,-.27,-.58);viewWeapon.add(receiver);
  const barrel=new THREE.Mesh(new THREE.CylinderGeometry(.035,.04,.55,8),material(0x111820));barrel.rotation.x=Math.PI/2;barrel.position.set(.34,-.22,-1.12);viewWeapon.add(barrel);
  const stock=new THREE.Mesh(new THREE.BoxGeometry(.16,.13,.28),material(0x414b4c));stock.position.set(.34,-.28,-.18);viewWeapon.add(stock);
@@ -68,7 +68,7 @@ function start(){
  show('game');$('notice').textContent='LOADING BATTLEFIELD…';
  requestAnimationFrame(()=>{try{makeArena();camera.position.set(0,1.7,25);camera.rotation.set(0,0,0);spawnEnemies(Number($('enemyCount').value));clock=new THREE.Clock();$('notice').textContent='CLICK THE ARENA TO CAPTURE MOUSE';cancelAnimationFrame(raf);animate();}catch(error){active=false;show('menu');console.error(error);alert('The 3D scene could not start: '+error.message);}});
 }
-let audioContext=null;
+let audioContext=null,damageFlashTimer=null;
 function soundShot(){try{audioContext=audioContext||new (window.AudioContext||window.webkitAudioContext)();if(audioContext.state==='suspended')audioContext.resume();const t=audioContext.currentTime;const osc=audioContext.createOscillator(),gain=audioContext.createGain();osc.type='sawtooth';osc.frequency.setValueAtTime(115,t);osc.frequency.exponentialRampToValueAtTime(38,t+.12);gain.gain.setValueAtTime(.16,t);gain.gain.exponentialRampToValueAtTime(.001,t+.16);osc.connect(gain);gain.connect(audioContext.destination);osc.start(t);osc.stop(t+.17);const n=audioContext.createBuffer(1,Math.floor(audioContext.sampleRate*.11),audioContext.sampleRate),d=n.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(1-i/d.length);const src=audioContext.createBufferSource(),ng=audioContext.createGain();src.buffer=n;ng.gain.setValueAtTime(.11,t);ng.gain.exponentialRampToValueAtTime(.001,t+.11);src.connect(ng);ng.connect(audioContext.destination);src.start(t);}catch(e){}}
 function soundEnemyShot(){try{audioContext=audioContext||new (window.AudioContext||window.webkitAudioContext)();if(audioContext.state==='suspended')audioContext.resume();const o=audioContext.createOscillator(),g=audioContext.createGain();o.type='triangle';o.frequency.setValueAtTime(95,audioContext.currentTime);o.frequency.exponentialRampToValueAtTime(48,audioContext.currentTime+.09);g.gain.setValueAtTime(.035,audioContext.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioContext.currentTime+.1);o.connect(g);g.connect(audioContext.destination);o.start();o.stop(audioContext.currentTime+.11);}catch(e){}}
 function soundReload(){try{audioContext=audioContext||new (window.AudioContext||window.webkitAudioContext)();const o=audioContext.createOscillator(),g=audioContext.createGain();o.frequency.value=520;g.gain.value=.035;o.connect(g);g.connect(audioContext.destination);o.start();o.stop(audioContext.currentTime+.07);}catch(e){}}
@@ -77,12 +77,12 @@ function shoot(){
  const w=weapons[weapon],now=performance.now();if(now-lastShot<w.rate)return;lastShot=now;
  if(ammo[weapon]<=0){reload();return;}ammo[weapon]--;soundShot();if(muzzleFlash){muzzleFlash.visible=true;setTimeout(()=>{if(muzzleFlash)muzzleFlash.visible=false;},55);}updateHud();
  const ray=new THREE.Raycaster();ray.setFromCamera(new THREE.Vector2(0,0),camera);ray.far=w.range;
- const targets=enemies.filter(e=>e.alive).map(e=>e.mesh);const hit=ray.intersectObjects(targets,true)[0];
- if(hit){let enemy=enemies.find(e=>e.alive&&(e.mesh===hit.object||e.mesh.children.includes(hit.object)));if(enemy){enemy.health-=w.damage;if(enemy.health<=0){enemy.alive=false;enemy.mesh.visible=false;kills++;$('notice').textContent='HOSTILE ELIMINATED';if(enemies.every(e=>!e.alive)){wave++;setTimeout(()=>{if(active){spawnEnemies(Math.min(3+wave*2,12));$('notice').textContent='WAVE '+wave+' — INCOMING HOSTILES';}},1300);}}}}
+ const targets=enemies.filter(e=>e.alive).map(e=>e.mesh);const hit=ray.intersectObjects(targets,true)[0];weaponKick=Math.min(.14,weaponKick+.055);
+ if(hit){let enemy=enemies.find(e=>e.alive&&(e.mesh===hit.object||e.mesh.children.includes(hit.object)));if(enemy){enemy.health-=w.damage;enemy.hitUntil=performance.now()+180;enemy.mesh.children.forEach(part=>{if(part.material&&part.material.emissive){part.material.emissive.setHex(0x661111);setTimeout(()=>part.material.emissive?.setHex(0x000000),150);}});if(enemy.health<=0){enemy.alive=false;enemy.mesh.visible=false;kills++;$('notice').textContent='HOSTILE ELIMINATED';if(enemies.every(e=>!e.alive)){wave++;setTimeout(()=>{if(active){spawnEnemies(Math.min(3+wave*2,12));$('notice').textContent='WAVE '+wave+' — INCOMING HOSTILES';}},1300);}}}}
  updateHud();
 }
 function reload(){soundReload();if(reloading||ammo[weapon]===weapons[weapon].mag)return;reloading=true;$('notice').textContent='RELOADING';setTimeout(()=>{ammo[weapon]=weapons[weapon].mag;reloading=false;updateHud();$('notice').textContent='';},weapon==='sniper'?1900:1400);}
-function damagePlayer(amount){health=Math.max(0,health-amount);updateHud();if(health<=0){active=false;if(document.pointerLockElement)document.exitPointerLock();cancelAnimationFrame(raf);$('resultTitle').textContent='YOU WERE ELIMINATED';$('resultText').textContent='Hostiles eliminated: '+kills+' · Wave reached: '+wave;show('result');}}
+function damagePlayer(amount){health=Math.max(0,health-amount);document.body.classList.add('taking-damage');clearTimeout(damageFlashTimer);damageFlashTimer=setTimeout(()=>document.body.classList.remove('taking-damage'),240);updateHud();if(health<=0){active=false;if(document.pointerLockElement)document.exitPointerLock();cancelAnimationFrame(raf);$('resultTitle').textContent='YOU WERE ELIMINATED';$('resultText').textContent='Hostiles eliminated: '+kills+' · Wave reached: '+wave;show('result');}}
 function updateEnemies(dt){
  const player={x:camera.position.x,z:camera.position.z};
  for(const e of enemies){if(!e.alive)continue;const p=e.mesh.position,dx=player.x-p.x,dz=player.z-p.z,dist=Math.hypot(dx,dz);e.phase+=dt;
@@ -104,6 +104,7 @@ function animate(){
  velocityY-=GRAVITY*dt;camera.position.y+=velocityY*dt;if(camera.position.y<=PLAYER_EYE){camera.position.y=PLAYER_EYE;velocityY=0;grounded=true;}
  aiming=!!(keys.MouseRight||keys.KeyC);camera.fov=THREE.MathUtils.lerp(camera.fov,aiming?48:75,Math.min(1,dt*12));camera.updateProjectionMatrix();
  camera.rotation.order='YXZ';camera.rotation.y=yaw;camera.rotation.x=pitch;
+ const weaponModel=camera.children.find(o=>o.name==='viewWeapon');if(weaponModel){weaponModel.position.z=weaponKick;weaponKick*=Math.pow(.025,dt);weaponModel.position.y=aiming?-.035:0;}
  updateEnemies(dt);if(enemies.every(e=>!e.alive)&&active){/* next wave scheduled after last elimination */}
  }
  renderer.render(scene,camera);
@@ -116,10 +117,10 @@ document.addEventListener('fullscreenchange',()=>{$('fullscreen').textContent=do
 host.addEventListener('click',()=>{if(active&&!paused)renderer.domElement.requestPointerLock();});
 document.addEventListener('pointerlockchange',()=>{if(document.pointerLockElement===renderer?.domElement)$('notice').textContent='';else if(active&&!paused)$('notice').textContent='CLICK THE ARENA TO RESUME AIM';});
 document.addEventListener('mousemove',e=>{if(document.pointerLockElement!==renderer?.domElement||!active||paused)return;yaw-=e.movementX*.0022;pitch=Math.max(-1.25,Math.min(1.25,pitch-e.movementY*.0022));});
-document.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='KeyR')reload();if(/^Digit[1-4]$/.test(e.code)){weapon=['rifle','sniper','shotgun','pistol'][Number(e.code.slice(-1))-1];updateHud();}if(e.code==='Escape'&&active){$('notice').textContent='CLICK THE ARENA TO RESUME';}});
+document.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Space'&&active)e.preventDefault();if(e.code==='KeyR')reload();if(/^Digit[1-4]$/.test(e.code)){weapon=['rifle','sniper','shotgun','pistol'][Number(e.code.slice(-1))-1];updateHud();}if(e.code==='Escape'&&active){$('notice').textContent='CLICK THE ARENA TO RESUME';}});
 document.addEventListener('keyup',e=>keys[e.code]=false);
-document.addEventListener('mousedown',e=>{if(e.button===0)shoot();if(e.button===2)aiming=true;});
-document.addEventListener('mouseup',e=>{if(e.button===2)aiming=false;});
+document.addEventListener('mousedown',e=>{if(e.button===0)shoot();if(e.button===2){keys.MouseRight=true;aiming=true;}});
+document.addEventListener('mouseup',e=>{if(e.button===2){keys.MouseRight=false;aiming=false;}});
 document.addEventListener('contextmenu',e=>{if(active)e.preventDefault();});
 window.addEventListener('resize',()=>{if(!renderer||!camera)return;const w=Math.max(1,host.clientWidth||window.innerWidth),h=Math.max(1,host.clientHeight||window.innerHeight);camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);});
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
