@@ -1,0 +1,9 @@
+{
+  "name": "OPERATION: STRIKE — Offline",
+  "short_name": "Operation Strike",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d1218",
+  "theme_color": "#10151b",
+  "description": "Single-player browser FPS"
+}
