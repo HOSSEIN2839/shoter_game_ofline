@@ -17,7 +17,7 @@ const weapons={
  shotgun:{label:'SHOTGUN',mag:8,ammo:8,damage:17,rate:650,range:19,pellets:7},
  pistol:{label:'SIDEARM',mag:12,ammo:12,damage:24,rate:300,range:35,pellets:1}
 };
-const obstacles=[],windFoliage=[];
+const obstacles=[],windFoliage=[],hitParticles=[],damagePopups=[];
 const gltfLoader=new GLTFLoader();
 const operatorModelIds=['army-general','army-officer','army-sniper','combat-engineer','combat-medic','machine-gunner','recon-scout','rifleman'];
 const operatorTemplates=new Map();
@@ -250,6 +250,57 @@ function makeArena(){
   }
  }
 }
+
+function createEnemyHealthBar(){
+ const canvas=document.createElement('canvas');canvas.width=256;canvas.height=64;
+ const ctx=canvas.getContext('2d');
+ const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
+ const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthTest:false,depthWrite:false}));
+ sprite.scale.set(1.18,.22,1);sprite.position.set(0,2.18,0);sprite.renderOrder=20;
+ sprite.userData.canvas=canvas;sprite.userData.ctx=ctx;sprite.userData.texture=texture;
+ return sprite;
+}
+function updateEnemyHealthBar(enemy){
+ const bar=enemy.healthBar;if(!bar)return;
+ const ctx=bar.userData.ctx,canvas=bar.userData.canvas,pct=THREE.MathUtils.clamp(enemy.health/100,0,1);
+ ctx.clearRect(0,0,canvas.width,canvas.height);
+ ctx.fillStyle='rgba(5,9,12,.82)';ctx.fillRect(3,9,250,46);
+ ctx.fillStyle='#29333a';ctx.fillRect(8,14,240,36);
+ ctx.fillStyle=pct>.55?'#64df9a':pct>.25?'#ffbf4a':'#ff4d55';ctx.fillRect(8,14,240*pct,36);
+ ctx.strokeStyle='rgba(255,255,255,.75)';ctx.lineWidth=3;ctx.strokeRect(8,14,240,36);
+ ctx.fillStyle='#fff';ctx.font='bold 18px Arial';ctx.textAlign='center';ctx.fillText(Math.max(0,Math.ceil(enemy.health))+' HP',128,5);
+ bar.userData.texture.needsUpdate=true;bar.visible=enemy.alive;
+}
+function spawnDamagePopup(position,amount,headshot=false){
+ const canvas=document.createElement('canvas');canvas.width=256;canvas.height=96;
+ const ctx=canvas.getContext('2d');ctx.font='900 58px Arial';ctx.textAlign='center';ctx.textBaseline='middle';
+ ctx.lineWidth=8;ctx.strokeStyle='#15191d';ctx.strokeText(String(Math.round(amount)),128,48);
+ ctx.fillStyle=headshot?'#ff4b4b':'#ffe08a';ctx.fillText(String(Math.round(amount)),128,48);
+ const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
+ const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthTest:false}));
+ sprite.position.copy(position);sprite.position.y+=.65;sprite.scale.set(.8,.3,1);sprite.renderOrder=21;scene.add(sprite);
+ damagePopups.push({sprite,texture,life:.72,maxLife:.72});
+}
+function spawnHitParticles(position){
+ const colors=[0x9e2028,0xd64040,0x6e151d];
+ for(let i=0;i<9;i++){
+  const mesh=new THREE.Mesh(new THREE.SphereGeometry(.035+Math.random()*.025,6,5),new THREE.MeshBasicMaterial({color:colors[i%colors.length],transparent:true,opacity:.95}));
+  mesh.position.copy(position);scene.add(mesh);
+  const velocity=new THREE.Vector3((Math.random()-.5)*2.6,Math.random()*2.1+.35,(Math.random()-.5)*2.6);
+  hitParticles.push({mesh,velocity,life:.34+Math.random()*.22});
+ }
+}
+function updateHitEffects(dt){
+ for(let i=hitParticles.length-1;i>=0;i--){
+  const p=hitParticles[i];p.life-=dt;p.velocity.y-=7*dt;p.mesh.position.addScaledVector(p.velocity,dt);
+  if(p.life<=0){scene.remove(p.mesh);p.mesh.geometry.dispose();p.mesh.material.dispose();hitParticles.splice(i,1);}
+ }
+ for(let i=damagePopups.length-1;i>=0;i--){
+  const p=damagePopups[i];p.life-=dt;p.sprite.position.y+=dt*.72;p.sprite.material.opacity=Math.max(0,p.life/p.maxLife);
+  if(p.life<=0){scene.remove(p.sprite);p.texture.dispose();p.sprite.material.dispose();damagePopups.splice(i,1);}
+ }
+}
+
 function makeOperator(color,isEnemy=false){
  const g=new THREE.Group(),body=new THREE.Mesh(new THREE.CapsuleGeometry(.34,.78,4,8),material(color));body.name='body';body.position.y=1.02;body.castShadow=true;g.add(body);
  const head=new THREE.Mesh(new THREE.SphereGeometry(.25,12,10),material(0xc49b78));head.name='head';head.position.y=1.72;head.castShadow=true;g.add(head);
