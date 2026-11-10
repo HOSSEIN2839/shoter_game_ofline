@@ -1,5 +1,5 @@
-// Offline shell cache. External Three.js module remains a first-load network dependency until vendored locally.
-const CACHE='operation-strike-shell-v3';
+// Offline shell cache. Three.js and GLB assets are served from the same origin and cached after first successful fetch.
+const CACHE='operation-strike-shell-v4';
 const FILES=['/','/index.html','/styles.css','/client.js','/manifest.webmanifest'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
