@@ -421,7 +421,7 @@ function animate(){
  if(!blocked(camera.position.x,camera.position.z+dz,.55))camera.position.z+=dz;
  if(keys.Space&&grounded){velocityY=JUMP_SPEED;grounded=false;keys.Space=false;}
  velocityY-=GRAVITY*dt;camera.position.y+=velocityY*dt;if(camera.position.y<=PLAYER_EYE){camera.position.y=PLAYER_EYE;velocityY=0;grounded=true;}
- const movingOnGround=(forward!==0||side!==0)&&grounded;if(movingOnGround){footstepTimer-=dt;if(footstepTimer<=0){playAssetAudio('footstep_concrete.ogg',.24,keys.ShiftLeft?1.15:1);footstepTimer=keys.ShiftLeft?.34:.48;}}else footstepTimer=0;
+ const movingOnGround=(forward!==0||side!==0)&&grounded;if(movingOnGround){footstepTimer-=dt;if(footstepTimer<=0){playAssetAudio('footstep_concrete.ogg',.24,keys.ShiftLeft?1.15:1);footstepTimer=keys.ShiftLeft ? 0.34 : 0.48;}}else footstepTimer=0;
  aiming=!!(keys.MouseRight||keys.KeyC);camera.fov=THREE.MathUtils.lerp(camera.fov,aiming?48:75,Math.min(1,dt*12));camera.updateProjectionMatrix();
  camera.rotation.order='YXZ';camera.rotation.y=yaw;camera.rotation.x=pitch;
  const weaponModel=camera.children.find(o=>o.name==='viewWeapon');if(weaponModel){weaponModel.position.z=weaponKick;weaponKick*=Math.pow(.025,dt);weaponModel.position.y=aiming?-.035:0;}
