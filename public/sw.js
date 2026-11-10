@@ -1,13 +1,59 @@
-// Offline shell cache. Three.js and GLB assets are served from the same origin and cached after first successful fetch.
-const CACHE='operation-strike-shell-v4';
-const FILES=['/','/index.html','/styles.css','/client.js','/manifest.webmanifest'];
-self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES)).then(()=>self.skipWaiting())));
-self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
-self.addEventListener('fetch',event=>{
- const url=new URL(event.request.url);
- if(event.request.method!=='GET'||url.origin!==self.location.origin)return;
- event.respondWith(caches.match(event.request).then(cached=>cached||fetch(event.request).then(response=>{
-  if(response.ok){const copy=response.clone();caches.open(CACHE).then(cache=>cache.put(event.request,copy));}
-  return response;
- })));
+// Precache the complete local game runtime so the first controlled load can work offline.
+const CACHE = 'operation-strike-shell-v5';
+const FILES = [
+  '/',
+  '/index.html',
+  '/styles.css',
+  '/client.js',
+  '/manifest.webmanifest',
+  '/vendor/three/build/three.module.js',
+  '/vendor/three/examples/jsm/loaders/GLTFLoader.js',
+  '/vendor/three/examples/jsm/utils/SkeletonUtils.js',
+  '/vendor/three/examples/jsm/utils/BufferGeometryUtils.js',
+  '/assets/characters/manifest.json',
+  '/assets/characters/army-general.glb',
+  '/assets/characters/army-officer.glb',
+  '/assets/characters/army-sniper.glb',
+  '/assets/characters/combat-engineer.glb',
+  '/assets/characters/combat-medic.glb',
+  '/assets/characters/machine-gunner.glb',
+  '/assets/characters/recon-scout.glb',
+  '/assets/characters/rifleman.glb'
+];
+
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE)
+      .then(cache => cache.addAll(FILES))
+      .then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(
+        keys.filter(key => key.startsWith('operation-strike-') && key !== CACHE)
+          .map(key => caches.delete(key))
+      ))
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', event => {
+  const request = event.request;
+  const url = new URL(request.url);
+  if (request.method !== 'GET' || url.origin !== self.location.origin) return;
+
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE);
+    const cached = await cache.match(request);
+    if (cached) return cached;
+
+    const response = await fetch(request);
+    if (response.ok) {
+      event.waitUntil(cache.put(request, response.clone()));
+    }
+    return response;
+  })());
 });
