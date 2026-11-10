@@ -1,37 +1,34 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#10151b"><title>OPERATION: STRIKE</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#10151b">
+<meta name="description" content="OPERATION: STRIKE — offline single-player browser FPS">
+<title>OPERATION: STRIKE — OFFLINE</title>
 <link rel="stylesheet" href="/styles.css">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+<link rel="manifest" href="/manifest.webmanifest">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"}}</script>
 </head>
 <body>
-<div id="app">
-  <header class="topbar"><a class="brand" href="#"><span class="brand-mark">OS</span><span>OPERATION<span class="accent">:</span> STRIKE</span></a><div id="connection" class="connection"><i></i> OFFLINE</div><div id="userBadge" class="user-badge hidden"></div></header>
-  <main>
-    <section id="authScreen" class="screen auth-screen">
-      <div class="hero-copy"><p class="eyebrow">TACTICAL MULTIPLAYER • BROWSER FPS</p><h1>ENTER THE<br><span class="accent">BATTLEFIELD.</span></h1><p class="muted">Build your squad. Choose your operator. Control the arena.</p><div class="feature-line"><span>01 / CREATE ACCOUNT</span><span>02 / JOIN A SQUAD</span><span>03 / DEPLOY</span></div></div>
-      <div class="panel auth-panel"><div class="panel-head"><span class="eyebrow">PLAYER ACCESS</span><span class="live-dot">● SYSTEM READY</span></div><div class="tabs"><button class="tab active" data-tab="login">SIGN IN</button><button class="tab" data-tab="register">CREATE ACCOUNT</button></div><form id="authForm"><label>USERNAME<input id="username" autocomplete="username" minlength="3" maxlength="18" required placeholder="Your callsign"></label><label>PASSWORD<input id="password" type="password" autocomplete="current-password" minlength="8" required placeholder="At least 8 characters"></label><button class="primary-btn" type="submit" id="authSubmit">ENTER THE GAME <span>↗</span></button></form><p id="authMessage" class="message"></p><p class="tiny muted">Passwords are securely hashed. Never reuse a sensitive password.</p></div>
-    </section>
-    <section id="lobbyScreen" class="screen hidden">
-      <div class="section-heading"><div><p class="eyebrow">MULTIPLAYER COMMAND</p><h2>MISSION <span class="accent">LOBBY</span></h2></div><button id="logoutBtn" class="ghost-btn">SIGN OUT ↗</button></div>
-      <div class="lobby-grid"><div class="panel create-panel"><p class="eyebrow">HOST A MATCH</p><h3>CREATE YOUR ROOM</h3><label>ROOM NAME<input id="roomName" maxlength="28" value="Combat Room"></label><label>MAX PLAYERS<select id="maxPlayers"><option>2</option><option>4</option><option selected>10</option><option>12</option><option>16</option><option>20</option></select></label><button id="createRoom" class="primary-btn">CREATE ROOM <span>＋</span></button><p class="tiny muted">10-minute Team Deathmatch · One arena</p></div><div class="panel rooms-panel"><div class="panel-head"><div><p class="eyebrow">LIVE DEPLOYMENTS</p><h3>AVAILABLE ROOMS</h3></div><button id="refreshRooms" class="icon-btn" title="Refresh">↻</button></div><div id="roomList" class="room-list"><p class="muted">Scanning for open rooms...</p></div></div></div><div class="panel stats-panel"><div><p class="eyebrow">PLAYER RECORD</p><h3>CAREER <span class="accent">STATS</span></h3><p id="profileSummary" class="muted tiny">Loading player record…</p><strong id="winRate" class="win-rate">—</strong></div><div class="leaderboard"><p class="eyebrow">TOP OPERATORS</p><div id="leaderboardList"><p class="tiny muted">Loading leaderboard…</p></div></div></div>
-    </section>
-    <section id="roomScreen" class="screen hidden">
-      <div class="section-heading"><div><p class="eyebrow">PRE-MATCH DEPLOYMENT</p><h2 id="roomTitle">COMBAT <span class="accent">ROOM</span></h2><p id="roomMeta" class="muted"></p></div><button id="leaveRoom" class="ghost-btn">← LEAVE ROOM</button></div>
-      <div class="room-layout"><div class="panel operator-panel"><div class="panel-head"><div><p class="eyebrow">01 / OPERATOR SELECT</p><h3>CHOOSE YOUR CHARACTER</h3></div><span class="tiny muted">15 OPERATORS</span></div><div id="characterGrid" class="character-grid"></div></div><div class="panel team-panel"><p class="eyebrow">02 / SQUAD ASSIGNMENT</p><h3>CHOOSE YOUR TEAM</h3><div class="team-buttons"><button data-team="blue" class="team-btn blue">BLUE SQUAD</button><button data-team="red" class="team-btn red">RED SQUAD</button></div><div class="teams"><div><h4 class="blue-text">BLUE TEAM</h4><div id="bluePlayers"></div></div><div><h4 class="red-text">RED TEAM</h4><div id="redPlayers"></div></div></div><button id="readyBtn" class="primary-btn ready-btn">I'M READY ✓</button><button id="startBtn" class="start-btn hidden">START MATCH ▶</button><p id="roomMessage" class="message"></p></div></div>
-    </section>
-    <section id="gameScreen" class="screen game-screen hidden">
-      <div id="gameHud" class="game-hud"><div class="hud-card"><span class="eyebrow">MATCH TIME</span><strong id="clock">10:00</strong></div><div class="hud-card score-card"><span class="blue-text">BLUE</span><strong id="blueScore">0</strong><span class="muted">—</span><strong id="redScore">0</strong><span class="red-text">RED</span></div><div class="hud-card"><span class="eyebrow">YOUR RECORD</span><strong><span id="myKills">0</span> K / <span id="myDeaths">0</span> D</strong></div></div>
-      <div id="gameCanvas"></div><div class="crosshair">＋</div><div class="compass"><span>COMPASS</span><strong id="compassHeading">N</strong></div><div id="killFeed" class="kill-feed"></div><div id="scoreboard" class="scoreboard hidden"><div class="scoreboard-head"><span>LIVE SCOREBOARD</span><small>HOLD TAB TO VIEW</small></div><table><thead><tr><th>PLAYER</th><th>TEAM</th><th>K</th><th>D</th><th>K/D</th></tr></thead><tbody id="scoreboardRows"></tbody></table></div><div class="scope-overlay"></div><div class="bottom-hud"><div class="health"><span>HEALTH</span><strong id="health">100</strong><div class="health-bar"><i id="healthBar"></i></div></div><div class="weapon-info"><span id="weaponName">ASSAULT RIFLE</span><strong id="ammo">30 / ∞</strong><small>1–4 WEAPONS · R RELOAD · SHIFT SPRINT</small></div></div>
-      <div id="minimap" class="minimap"><span>N</span><div class="map-grid"></div><i class="map-player"></i><span class="map-label">ARENA</span></div>
-      <div id="gameNotice" class="game-notice">CLICK TO PLAY · WASD MOVE · MOUSE AIM · LEFT CLICK FIRE</div>
-    </section>
-    <section id="resultsScreen" class="screen hidden"><div class="results panel"><p class="eyebrow">MISSION COMPLETE</p><h2 id="winnerTitle">MATCH <span class="accent">RESULTS</span></h2><div id="finalScores" class="final-scores"></div><button id="backLobby" class="primary-btn">BACK TO LOBBY ↗</button></div></section>
-  </main>
-  <footer><span>OPERATION: STRIKE <span class="accent">/</span> WEB FPS</span><span>BUILD 0.4.0 · MULTIPLAYER TEST BUILD</span></footer>
-</div>
-<script src="/socket.io/socket.io.js"></script><script type="module" src="/client.js"></script>
+<div class="topbar"><a class="brand" href="#"><span class="brand-mark">OS</span> OPERATION<span class="accent">:</span> STRIKE</a><span class="connection"><i></i> SINGLE PLAYER</span></div>
+<main>
+<section id="menu" class="menu screen">
+ <div class="hero"><p class="eyebrow">OFFLINE COMBAT SIMULATION</p><h1>ENTER THE<br><span class="accent">BATTLEFIELD.</span></h1><p class="muted">Fight enemy operators controlled by the computer. No account, lobby or multiplayer server required.</p>
+ <div class="mode-row"><label>DIFFICULTY<select id="difficulty"><option value="easy">RECRUIT</option><option value="normal" selected>VETERAN</option><option value="hard">ELITE</option></select></label><label>ENEMY COUNT<select id="enemyCount"><option value="3">3 OPERATORS</option><option value="5" selected>5 OPERATORS</option><option value="8">8 OPERATORS</option></select></label></div>
+ <button id="start" class="primary-btn">START SOLO MISSION <span>↗</span></button>
+ <p class="tiny muted">WASD move · Mouse aim · Left click fire · R reload · 1–4 weapons · Shift sprint · Esc release mouse</p></div>
+ <aside class="panel briefing"><p class="eyebrow">MISSION BRIEFING</p><h2>TRAINING YARD</h2><p>Eliminate hostile operators, stay alive and build your score. Enemies patrol, pursue, aim and fire back.</p><ul><li>Local enemy AI</li><li>Four weapon classes</li><li>Health, ammo and score</li><li>Runs entirely in your browser after required game assets are cached</li></ul></aside>
+</section>
+<section id="game" class="game-screen hidden">
+ <div id="gameCanvas"></div>
+ <div class="game-hud"><div class="hud-card"><span>HEALTH</span><strong id="health">100</strong></div><div class="hud-card"><span>ELIMINATIONS</span><strong id="kills">0</strong></div><div class="hud-card"><span>HOSTILES</span><strong id="hostiles">5</strong></div><div class="hud-card"><span>WAVE</span><strong id="wave">1</strong></div></div>
+ <div class="crosshair">＋</div><div id="notice" class="game-notice">CLICK THE ARENA TO CAPTURE MOUSE</div>
+ <div class="bottom-hud"><div class="health"><span>VITALS</span><strong id="healthBottom">100%</strong><div class="health-bar"><i id="healthBar"></i></div></div><div class="weapon-info"><span id="weaponName">ASSAULT RIFLE</span><strong id="ammo">30 / 30</strong><small>1–4 WEAPONS · R RELOAD · SHIFT SPRINT</small></div></div>
+ <button id="pause" class="pause-btn">PAUSE</button>
+</section>
+<section id="result" class="result screen hidden"><div class="panel result-panel"><p class="eyebrow">MISSION REPORT</p><h2 id="resultTitle">MISSION COMPLETE</h2><p id="resultText" class="muted"></p><button id="again" class="primary-btn">PLAY AGAIN <span>↗</span></button><button id="menuBtn" class="ghost-btn">MAIN MENU</button></div></section>
+</main>
+<footer><span>OPERATION: STRIKE <span class="accent">/</span> OFFLINE EDITION</span><span>STATIC WEB BUILD · NO NODE.JS SERVER</span></footer>
+<script type="module" src="/client.js"></script>
 </body></html>
