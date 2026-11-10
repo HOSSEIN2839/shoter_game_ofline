@@ -1,5 +1,5 @@
 // Precache the complete local game runtime so the first controlled load can work offline.
-const CACHE = 'operation-strike-shell-v11';
+const CACHE = 'operation-strike-shell-v12';
 const OPTIONAL_FILES = [
   '/assets/combat/characters/soldier.glb','/assets/combat/characters/soldier_tac.glb',
   '/assets/combat/weapons/m4a1.glb','/assets/combat/weapons/awm.glb','/assets/combat/weapons/m1911.glb','/assets/combat/weapons/shotgun.glb','/assets/combat/weapons/mp5a5.glb',
