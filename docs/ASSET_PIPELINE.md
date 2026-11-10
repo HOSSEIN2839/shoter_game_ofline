@@ -1,81 +1,52 @@
 # OPERATION: STRIKE — 3D Asset Pipeline
 
-## Current state
+## Verified repository state (2026-11-10)
 
-The game still uses procedural operator meshes as a fallback. No downloaded character GLB or map pack is included yet. Do not describe the 15 operator slots as finished 3D characters until the models are installed and tested.
+The current playable prototype still builds its operator bodies from primitive Three.js geometry. There is no GLB character manifest, no GLB binary in `public/assets/`, and no GLTFLoader/SkeletonUtils integration in the current `public/client.js`. Do not describe model loading or skeletal animation as implemented.
 
-## Character direction
+The map is also procedural geometry. The recent rendering pass adds ACES tone mapping, PCF soft shadows, shadow-camera bounds, animated tree crowns, cover-aware hitscan, line-of-sight checks for enemy firing, and headshot multipliers. These improve the prototype but do not replace a production environment or physics/collision engine.
 
-The target is 15 distinct, fully clothed, non-explicit tactical operators with readable silhouettes and a consistent stylized-realistic art direction. Avoid underwear, swimwear, revealing outfits, joke costumes, and unrelated fantasy gear.
+## Target character requirements
 
-### Character sources to combine: Quaternius modular packs
+- Fully clothed modern tactical operators with distinct silhouettes and readable team identifiers.
+- glTF 2.0 / GLB assets with humanoid skeletons, sensible scale and origin, embedded or correctly referenced textures.
+- Separate animation clips where available: idle, walk, run, jump, aim, fire, reload, hit reaction and death.
+- Use `SkeletonUtils.clone()` for every skinned character instance; ordinary `Object3D.clone()` is not safe for independent skeleton animation.
+- Use `THREE.AnimationMixer` per character and cross-fade actions rather than abruptly switching clips.
+- Verify every asset using the Khronos glTF Validator before adding it to the public build.
 
-- Official pack page: https://quaternius.com/packs/ultimatemodularcharacters.html
-- The official page identifies **11 different characters**, **24 animations**, modular character parts, glTF/FBX/OBJ/Blend formats, and a **CC0** licence.
-- The page states the assets are free for personal and commercial projects.
-- This is an older February 2022 pack, so its pack-specific CC0 grant is distinct from newer Quaternius packs and the newer QAL terms. Keep the exact page and the included licence file with the source record.
+## Candidate sources — verify the exact pack licence
 
-Men pack: 11 distinct characters and 24 animations. Women pack: 10 distinct characters and 24 animations, including a humanoid rig version. Together they provide 21 distinct starting models, enough to choose 15 operators. The pack includes casual/fantasy-adjacent silhouettes as well as SWAT, so select the tactical-looking models and use modular parts to make the rest consistent. Inspect the actual files before final selection.
+### Gobkit free library
+- Manifest: https://gobkit.com/api/free
+- Guide: https://gobkit.com/freebies
+- The published manifest reports a CC0 1.0 library. It includes modern tactical-themed candidates such as ArmySniper, ArmyOfficer, CombatMedic, CombatEngineer, ReconScout, MachineGunner and Rifleman.
+- The free-pack manifest distinguishes separately named clips from legacy frame-range metadata. Read the current manifest instructions and use the clip names actually present in each downloaded GLB.
+- Skinned copies require skeleton-aware cloning.
+- Download and bundle the files into this repository; do not hotlink them at runtime if offline operation is required.
 
-### Other Quaternius candidates
+### Quaternius
+- Ultimate Modular Characters: https://quaternius.com/packs/ultimatemodularcharacters.html
+- Licence: https://quaternius.com/license.html
+- Verify the licence included with the exact downloaded pack. Do not assume the licence of an older pack applies to newer releases.
 
-- Ultimate Modular Women Pack: https://quaternius.com/packs/ultimatemodularwomen.html
-- Universal Base Characters: https://quaternius.itch.io/universal-base-characters
-- Modular Character Outfits (Fantasy): https://quaternius.com/
-- Universal Animation Library: https://quaternius.itch.io/universal-animation-library
+### Khronos validator
+- Browser validator: https://github.khronos.org/glTF-Validator/
+- Source and CLI usage: https://github.com/KhronosGroup/glTF-Validator
 
-The Universal Base pack page advertises six humanoid rigged bases and 20 hairstyles; it is a foundation, not 15 finished operators. The fantasy outfit pack is fully clothed but may not fit a modern tactical shooter.
+## Integration sequence
 
-**Licence warning:** Quaternius published QAL v1.0 on 2026-08-28. Newer assets may have restrictions on redistributing source files as standalone assets. Do not assume that an older pack's CC0 grant applies to newer packs. Check the exact pack page and the licence included in each download before committing any source models.
+1. Acquire a small representative character set and preserve the original licence/readme.
+2. Inspect model previews, skeletons, scale, facing, textures and animation clip names.
+3. Validate the GLB files; reject broken or oversized files.
+4. Add the binary files under `public/assets/characters/`.
+5. Vendor the matching Three.js release and its GLTFLoader and SkeletonUtils modules under `public/vendor/`.
+6. Implement a manifest-driven loader with a procedural fallback; use skeleton-aware clones and per-instance mixers.
+7. Add animation state transitions for locomotion, aim, fire, reload, hit and death.
+8. Test collision, hitboxes and performance with several simultaneous enemies.
+9. Update the service-worker cache only after all local paths are verified.
+10. Verify first-load network access, then disable the network and reload in a clean browser profile to prove offline operation.
 
-Current licence information: https://quaternius.com/license.html
+## Hosting boundary
 
-## CC0 alternative for freely redistributable assets
-
-- Kenney Blocky Characters: https://kenney.nl/assets/blocky-characters
-- Kenney Mini Characters: https://kenney.nl/assets/mini-characters
-- Kenney Nature Kit: https://kenney.nl/assets/nature-kit
-
-Kenney identifies these asset pages as CC0. The style is more toy-like than tactical, so these are fallback/prototype sources rather than the preferred final operator art direction. Preserve each downloaded pack's included License.txt.
-
-## Runtime GLB loader
-
-The browser now has a manifest-driven GLTFLoader pipeline. It clones skinned meshes safely, normalizes model height to 1.8 units, adds a blue/red team armband, and plays available idle/walk/run clips. If a file is absent, malformed, or fails to load, the procedural operator remains visible. The manifest is `public/assets/characters/manifest.json`; only local `/assets/characters/*.glb` paths are accepted.
-
-No third-party GLB binaries have been copied into this repository yet. The loader is ready, but the model slots stay `null` until the exact pack files have been downloaded, inspected, and checked against their licence. This avoids shipping invented or unverified binary assets.
-
-## Required model layout
-
-When a model has been acquired and its licence checked, convert/prepare it as a GLB and place it here:
-
-```
-public/
-  assets/
-    characters/
-      operator-01.glb
-      operator-02.glb
-      ...
-      operator-15.glb
-    environment/
-```
-
-Use the same operator IDs as the server's character catalogue. Each model must be checked for:
-- full-body coverage and suitable clothing;
-- consistent scale, forward direction and origin at the feet;
-- humanoid rig and animation compatibility;
-- texture paths embedded or correctly relative;
-- reasonable polygon/texture size for browser multiplayer;
-- permission to redistribute the resulting file in this public repository.
-
-## Integration and acceptance checklist
-
-- Load models asynchronously and retain the procedural mesh if a model is missing or fails.
-- Cache each GLB once; clone safely for each player (including skinned meshes).
-- Apply team identification as a small armband/shoulder marker, not by recolouring the whole uniform.
-- Play idle, walk/run, fire, reload, hit and death animations where available.
-- Verify all 15 previews, selection exclusivity, remote player appearance, respawn, and browser performance.
-- Record source URL, creator, exact licence/version, acquisition date and any required attribution for every asset.
-
-## Environment
-
-The training-yard map currently uses procedural geometry. The arena was improved with painted firing lanes, container ribs, concrete cover, sandbags, watchtower frames and perimeter lights. A polished downloadable map pack is a later step; keep its licence and performance budget documented before adding it.
+Everything needed by the browser belongs inside `public/` and is copied into `public_html/` while preserving relative paths. Development notes and licence records remain in `docs/` and are not uploaded. No Node.js runtime or private PHP files are required by the current static prototype.
