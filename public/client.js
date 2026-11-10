@@ -47,7 +47,7 @@ async function replaceWithAnimatedOperator(enemy,id){
   const model=await createOperatorModel(id);
   if(!active||!enemies.includes(enemy)||!enemy.alive)return;
   model.root.position.x+=enemy.mesh.position.x;model.root.position.z+=enemy.mesh.position.z;
-  const fallback=enemy.mesh;scene.remove(fallback);scene.add(model.root);enemy.mesh=model.root;enemy.mixer=model.mixer;enemy.actions=model.actions;enemy.currentAction=null;playOperatorAction(enemy,'Idle');
+  const fallback=enemy.mesh;scene.remove(fallback);scene.add(model.root);enemy.mesh=model.root;if(enemy.healthBar)model.root.add(enemy.healthBar);enemy.mixer=model.mixer;enemy.actions=model.actions;enemy.currentAction=null;playOperatorAction(enemy,'Idle');
  }catch(error){console.warn('GLB operator unavailable; procedural fallback retained:',id,error);}
 }
 const material=(color,roughness=.85)=>new THREE.MeshStandardMaterial({color,roughness});
@@ -82,7 +82,7 @@ function makeArena(){
  sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-48;sun.shadow.camera.right=48;sun.shadow.camera.top=48;sun.shadow.camera.bottom=-48;sun.shadow.bias=-.0002;scene.add(sun);
  const fill=new THREE.DirectionalLight(0xa8c9e8,.55);fill.position.set(24,12,-20);scene.add(fill);
 
- obstacles.length=0;windFoliage.length=0;
+ obstacles.length=0;windFoliage.length=0;hitParticles.length=0;damagePopups.length=0;
  const mat=(color,roughness=.9)=>new THREE.MeshStandardMaterial({color,roughness});
  const metal=(color)=>new THREE.MeshStandardMaterial({color,roughness:.58,metalness:.48});
  const ground=new THREE.Mesh(new THREE.PlaneGeometry(110,110),mat(0x777967));ground.rotation.x=-Math.PI/2;ground.position.y=-.08;ground.receiveShadow=true;scene.add(ground);
@@ -262,8 +262,8 @@ function spawnEnemies(count){
  const colors=[0x9c594c,0x756d56,0x555e70,0x8b6c4c,0x596d62,0x7b5968,0x66645a,0x4f6872];
  for(let i=0;i<count;i++){let x,z,tries=0;do{x=(Math.random()-.5)*48;z=(Math.random()-.5)*48;tries++;}while((Math.hypot(x,z-25)<12||blocked(x,z))&&tries<80);
  const mesh=makeOperator(colors[i%colors.length],true);mesh.position.set(x,0,z);scene.add(mesh);
- const enemy={mesh,health:100,speed:1.6+Math.random()*.9,cooldown:1+Math.random()*2,phase:Math.random()*5,alive:true,strafe:Math.random()<.5?-1:1,mixer:null,actions:null,currentAction:null,actionLockUntil:0};
- enemies.push(enemy);replaceWithAnimatedOperator(enemy,operatorModelIds[i%operatorModelIds.length]);
+ const enemy={mesh,health:100,healthBar:null,speed:1.6+Math.random()*.9,cooldown:1+Math.random()*2,phase:Math.random()*5,alive:true,strafe:Math.random()<.5?-1:1,mixer:null,actions:null,currentAction:null,actionLockUntil:0};
+ enemy.healthBar=createEnemyHealthBar();mesh.add(enemy.healthBar);updateEnemyHealthBar(enemy);enemies.push(enemy);replaceWithAnimatedOperator(enemy,operatorModelIds[i%operatorModelIds.length]);
  }
  updateHud();
 }
@@ -288,7 +288,7 @@ function shoot(){
  if(ammo[weapon]<=0){reload();return;}ammo[weapon]--;soundShot();if(muzzleFlash){muzzleFlash.visible=true;setTimeout(()=>{if(muzzleFlash)muzzleFlash.visible=false;},55);}updateHud();
  const ray=new THREE.Raycaster();ray.setFromCamera(new THREE.Vector2(0,0),camera);ray.far=w.range;
  const targets=enemies.filter(e=>e.alive).map(e=>e.mesh),hit=ray.intersectObjects([...obstacles.map(o=>o.mesh).filter(Boolean),...targets],true)[0];weaponKick=Math.min(.14,weaponKick+.055);
- if(hit){let enemy=enemies.find(e=>e.alive&&(e.mesh===hit.object||e.mesh.getObjectById(hit.object.id)));if(enemy){const headshot=hit.object.name.toLowerCase().includes('head')||hit.point.y>enemy.mesh.position.y+1.55;showHitMarker(headshot);$('notice').textContent=headshot?'HEADSHOT':'TARGET HIT';enemy.health-=w.damage*(headshot?2:1);enemy.hitUntil=performance.now()+180;enemy.actionLockUntil=performance.now()+420;playOperatorAction(enemy,'Hit',false);enemy.mesh.traverse(part=>{if(part.isMesh&&part.material&&part.material.emissive){part.material.emissive.setHex(0x661111);setTimeout(()=>part.material.emissive?.setHex(0x000000),150);}});if(enemy.health<=0){enemy.alive=false;playOperatorAction(enemy,'Death',false);if(!enemy.mixer)enemy.mesh.visible=false;else setTimeout(()=>{if(enemy.mesh)enemy.mesh.visible=false;},2300);kills++;$('notice').textContent='HOSTILE ELIMINATED';if(enemies.every(e=>!e.alive)){wave++;setTimeout(()=>{if(active){spawnEnemies(Math.min(3+wave*2,12));$('notice').textContent='WAVE '+wave+' — INCOMING HOSTILES';}},1300);}}}}
+ if(hit){let enemy=enemies.find(e=>e.alive&&(e.mesh===hit.object||e.mesh.getObjectById(hit.object.id)));if(enemy){const headshot=hit.object.name.toLowerCase().includes('head')||hit.point.y>enemy.mesh.position.y+1.55;showHitMarker(headshot);$('notice').textContent=headshot?'HEADSHOT':'TARGET HIT';const dealt=w.damage*(headshot?2:1);enemy.health=Math.max(0,enemy.health-dealt);updateEnemyHealthBar(enemy);spawnHitParticles(hit.point);spawnDamagePopup(hit.point,dealt,headshot);enemy.hitUntil=performance.now()+180;enemy.actionLockUntil=performance.now()+420;playOperatorAction(enemy,'Hit',false);enemy.mesh.traverse(part=>{if(part.isMesh&&part.material&&part.material.emissive){part.material.emissive.setHex(0x661111);setTimeout(()=>part.material.emissive?.setHex(0x000000),150);}});if(enemy.health<=0){enemy.alive=false;playOperatorAction(enemy,'Death',false);if(!enemy.mixer)enemy.mesh.visible=false;else setTimeout(()=>{if(enemy.mesh)enemy.mesh.visible=false;},2300);kills++;$('notice').textContent='HOSTILE ELIMINATED';if(enemies.every(e=>!e.alive)){wave++;setTimeout(()=>{if(active){spawnEnemies(Math.min(3+wave*2,12));$('notice').textContent='WAVE '+wave+' — INCOMING HOSTILES';}},1300);}}}}
  updateHud();
 }
 function reload(){soundReload();if(reloading||ammo[weapon]===weapons[weapon].mag)return;reloading=true;$('notice').textContent='RELOADING';setTimeout(()=>{ammo[weapon]=weapons[weapon].mag;reloading=false;updateHud();$('notice').textContent='';},weapon==='sniper'?1900:1400);}
@@ -317,7 +317,7 @@ function animate(){
  aiming=!!(keys.MouseRight||keys.KeyC);camera.fov=THREE.MathUtils.lerp(camera.fov,aiming?48:75,Math.min(1,dt*12));camera.updateProjectionMatrix();
  camera.rotation.order='YXZ';camera.rotation.y=yaw;camera.rotation.x=pitch;
  const weaponModel=camera.children.find(o=>o.name==='viewWeapon');if(weaponModel){weaponModel.position.z=weaponKick;weaponKick*=Math.pow(.025,dt);weaponModel.position.y=aiming?-.035:0;}
- updateEnemies(dt);for(const leaf of windFoliage)leaf.mesh.rotation.z=Math.sin(clock.elapsedTime*.85+leaf.phase)*leaf.amount;if(enemies.every(e=>!e.alive)&&active){/* next wave scheduled after last elimination */}
+ updateEnemies(dt);updateHitEffects(dt);for(const leaf of windFoliage)leaf.mesh.rotation.z=Math.sin(clock.elapsedTime*.85+leaf.phase)*leaf.amount;if(enemies.every(e=>!e.alive)&&active){/* next wave scheduled after last elimination */}
  }
  renderer.render(scene,camera);
 }
