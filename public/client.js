@@ -133,7 +133,7 @@ function makeArena(){
   decoBox(x,h+.12,z,w+.35,.24,d+.35,metal(0x454e50));
   // Roof parapets.
   decoBox(x,h+.42,z-d/2,w,.55,.18,accentColor);decoBox(x,h+.42,z+d/2,w,.55,.18,accentColor);
-  decoBox(x-w/2,z*0+h+.42,z,w? .18:.18,d,.55,accentColor);
+  decoBox(x-w/2,h+.42,z,.18,.55,d,accentColor);
   decoBox(x+w/2,h+.42,z,.18,.55,d,accentColor);
   // Recessed dark windows and a heavy entrance.
   for(let wx=-w*.32;wx<=w*.33;wx+=w*.32){
@@ -166,7 +166,7 @@ function makeArena(){
 
  // Shipping containers: stacked ribs, doors and corner castings.
  const container=(x,z,color,rotation=0)=>{
-  const body=decoBox(x,1.35,z,9,2.7,3,metal(color),rotation);
+  const body=decoBox(x,1.35,z,9,2.7,3,metal(color),rotation);\n  obstacles.push({x,z,w:9,d:3,mesh:body});
   for(let i=-4;i<=4;i++){
    const rib=decoBox(x+i*.92,1.35,z-1.53,.075,2.48,.08,metal(0x9a9b8d),rotation);
    const p=new THREE.Vector3(x+i*.92,1.35,z-1.53).sub(new THREE.Vector3(x,1.35,z));
