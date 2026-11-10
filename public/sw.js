@@ -1,5 +1,5 @@
 // Precache the complete local game runtime so the first controlled load can work offline.
-const CACHE = 'operation-strike-shell-v8';
+const CACHE = 'operation-strike-shell-v9';
 const FILES = [
   '/',
   '/index.html',
