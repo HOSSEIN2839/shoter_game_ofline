@@ -1,0 +1,51 @@
+﻿{
+    "fps":  30,
+    "downloadedAt":  "2026-11-10T20:32:05.6304139Z",
+    "license":  "CC0 1.0 Universal",
+    "sourceUrl":  "https://gobkit.com/freebies/human004/gobkit-human004-pack.zip",
+    "source":  "Gobkit Free Character Pack Vol.4",
+    "licenseUrl":  "https://creativecommons.org/publicdomain/zero/1.0/",
+    "characters":  [
+                       {
+                           "id":  "army-general",
+                           "file":  "army-general.glb"
+                       },
+                       {
+                           "id":  "army-officer",
+                           "file":  "army-officer.glb"
+                       },
+                       {
+                           "id":  "army-sniper",
+                           "file":  "army-sniper.glb"
+                       },
+                       {
+                           "id":  "combat-engineer",
+                           "file":  "combat-engineer.glb"
+                       },
+                       {
+                           "id":  "combat-medic",
+                           "file":  "combat-medic.glb"
+                       },
+                       {
+                           "id":  "machine-gunner",
+                           "file":  "machine-gunner.glb"
+                       },
+                       {
+                           "id":  "recon-scout",
+                           "file":  "recon-scout.glb"
+                       },
+                       {
+                           "id":  "rifleman",
+                           "file":  "rifleman.glb"
+                       }
+                   ],
+    "animations":  [
+                       "Idle",
+                       "Walk",
+                       "Run",
+                       "Death",
+                       "Hit",
+                       "Attack",
+                       "Special"
+                   ]
+}

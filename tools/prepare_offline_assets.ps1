@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 $root = Split-Path -Parent $PSScriptRoot
 $vendor = Join-Path $root 'public/vendor/three'
@@ -9,8 +9,8 @@ New-Item -ItemType Directory -Force -Path (Join-Path $vendor 'build'), (Join-Pat
 $downloads = @(
   @{ Url='https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js'; Path=(Join-Path $vendor 'build/three.module.js'); Min=300000 },
   @{ Url='https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js'; Path=(Join-Path $addons 'loaders/GLTFLoader.js'); Min=50000 },
-  @{ Url='https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/utils/SkeletonUtils.js'; Path=(Join-Path $addons 'utils/SkeletonUtils.js'); Min=10000 },
-  @{ Url='https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/utils/BufferGeometryUtils.js'; Path=(Join-Path $addons 'utils/BufferGeometryUtils.js'); Min=10000 },
+  @{ Url='https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/utils/SkeletonUtils.js'; Path=(Join-Path $addons 'utils/SkeletonUtils.js'); Min=1000 },
+  @{ Url='https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/utils/BufferGeometryUtils.js'; Path=(Join-Path $addons 'utils/BufferGeometryUtils.js'); Min=1000 },
   @{ Url='https://raw.githubusercontent.com/mrdoob/three.js/r170/LICENSE'; Path=(Join-Path $vendor 'LICENSE.txt'); Min=500 }
 )
 foreach ($item in $downloads) {
@@ -50,3 +50,4 @@ $manifest = @{
 $manifest | ConvertTo-Json -Depth 6 | Set-Content -Encoding UTF8 (Join-Path $characters 'manifest.json')
 Write-Host ''
 Write-Host 'Asset download completed. Review the files, then commit and push the generated public/vendor and public/assets folders.' -ForegroundColor Green
+
